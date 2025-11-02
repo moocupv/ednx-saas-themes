@@ -1,0 +1,18 @@
+<%! 
+	from django.urls import reverse
+	from django.utils.translation import gettext as _
+%>
+<%inherit file="/main.html" />
+<%namespace name='static' file='/static_content.html'/>
+
+<%
+  static_cookies_html = theming.options('static', 'static_cookies_html', default= ' ')
+%>
+
+<%block name="title"><title>${theming.options('static', 'static_cookies_title', default= _('Cookies policy'))}</title></%block>
+
+<section class="content-container p-5">
+  <div class="row static_page container p-4">
+    ${static_cookies_html | n,  decode.utf8}
+  </div>
+</section>
