@@ -17,7 +17,7 @@ These are the default values and the variables that could be change:
 the header folder needs all the templates if not will give an error.
 
 **login.html - register.html**
-These templates were removed in this version of the platform.
+These templates were removed in this version of the platform, do not use.
 
 **main.html, dashboard.html, index.html, courseware/courses.html**
 These are the common templates that fails, copy the content of the new version and add the custom changes.
