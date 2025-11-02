@@ -33,8 +33,9 @@ enterprise_customer_link = get_enterprise_learner_portal(request)
       </%block>
     </a>
   % endif
-  % import re
-  % if course and not re.search('/about', request.path):
+<%! import re %>
+  % if course and request and hasattr(request, 'path') and not re.search(r'/about', request.path):
+
     <div class="course-header">
       <div class="course-header-provider">
       <span class="provider">${course.display_org_with_default}:</span>
