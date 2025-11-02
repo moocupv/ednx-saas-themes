@@ -18,10 +18,10 @@
     popup_colortext: "${ednx_cookie_content.get('popup_colortext','#ffffff')}",
     button_colorbackground: "${ednx_cookie_content.get('button_colorbackground', '#005379')}",
     button_colortext: "${ednx_cookie_content.get('button_colortext', '#ffffff')}",
-    message: "${ednx_cookie_content.get('message', 'Esta plataforma utiliza cookies para ofrecerte la mejor experiencia.') |n}",
+    message: "${ednx_cookie_content.get('message', 'Utilizamos cookies propias y de terceros por motivos de seguridad, y también para mejorar la experiencia del usuario y conocer tus hábitos de navegación. Recuerda que, al utilizar nuestros servicios, admites nuestro aviso legal y nuestra política de cookies. Entendemos que, si continuas navegando, es porque apruebas estos términos.') |n}",
     message_button: "${ednx_cookie_content.get('message_button', 'Acepto')}",
     message_link: "${ednx_cookie_content.get('message_link', 'Saber más')}",
-    link_href: "${ednx_cookie_content.get('link_href','https://upvx.es/cookies')}"
+    link_href: "${ednx_cookie_content.get('link_href','https://upvx.es/cookies.html')}"
 
   }
   % else:
@@ -30,10 +30,10 @@
     popup_colortext: "#ffffff",
     button_colorbackground: "#005379",
     button_colortext: "#ffffff",
-    message: "Esta plataforma utiliza cookies para ofrecerte la mejor experiencia.",
+    message: 'Utilizamos cookies propias y de terceros por motivos de seguridad, y también para mejorar la experiencia del usuario y conocer tus hábitos de navegación. Recuerda que, al utilizar nuestros servicios, admites nuestro aviso legal y nuestra política de cookies. Entendemos que, si continuas navegando, es porque apruebas estos términos.',
     message_button: "Acepto",
     message_link: "Saber más",
-    link_href: "https://upvx.es/cookies"
+    link_href: "https://upvx.es/cookies.html"
 
   }
   % endif
