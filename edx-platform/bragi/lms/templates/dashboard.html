@@ -34,6 +34,8 @@ from common.djangoapps.student.models import CourseEnrollment
   dashboard_text_html = theming.options('dashboard', 'dashboard_text_html', default=False)
   dashboard_text = theming.options('dashboard', 'dashboard_text', default= {})
 
+  footer_override = theming.options('footer', 'footer_override', default=False)
+
   dashboard_text_into_html = theming.options('dashboard', 'dashboard_text_into_html', default=False)
   dashboard_sidebar_html = theming.options('dashboard', 'dashboard_sidebar_html', default=False)
   dashboard_text_into_bottom_html = theming.options('dashboard', 'dashboard_text_into_bottom_html', default=False)
@@ -454,3 +456,7 @@ from common.djangoapps.student.models import CourseEnrollment
 </div>
 
 <%include file="dashboard/_dashboard_entitlement_unenrollment_modal.html"/>
+
+%if footer_override:
+  ${footer_override | n, decode.utf8}
+%endif

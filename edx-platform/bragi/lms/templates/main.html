@@ -148,8 +148,16 @@ from common.djangoapps.pipeline_mako import render_require_js_path_overrides
     <meta name="google-site-verification" content="${google_site_verification_id}" />
   % endif
 
-  <meta name="openedx-release-line" content="${RELEASE_LINE}" />
-  <meta name="description" content="UPV[X] es la plataforma de cursos online de la Universitat Politècnica de València. Formación gratuita y de calidad en ingeniería, ciencia, tecnología y más." />
+  <meta name="openedx-release-line" content="${RELEASE_LINE}" /> 
+  <meta name="description" content="MOOC cursos gratuitos online  masivos de la Universitat Politècnica de València (UPV) en España, únete a nosotros y descubre una nueva forma de aprender. Formación gratuita y de calidad en ingeniería, ciencia, tecnología y más." /> 
+  <meta name="keywords" content="mooc,moocs, españa,español, upv, universidad, cursos, masivos, online, gratuitos " lang="es"> 
+  <meta property="og:title" content="MOOC, cursos gratuitos online masivos de la UPV en España, UPV[X]. Más de 150 MOOCs a tu disposición."/> 
+  <meta property="og:description" content="MOOC cursos gratuitos online masivos de la UPV en España, únete a nosotros y descubre una nueva forma de aprender"/> 
+  <meta property="og:site_name" content="UPVX Formación Online"/> 
+  <meta name="twitter:card" content="summary"/> 
+  <meta name="twitter:description" content="MOOC cursos gratuitos online masivos de la UPV en España, únete a nosotros y descubre una nueva forma de aprender"/>
+  <meta name="twitter:title" content="MOOC, cursos gratuitos online masivos de la UPV en España, UPV[X]. Más de 150 MOOCs a tu disposición."/>
+  <meta name="twitter:site" content="@upvx"/>
 
 <% branch_key = static.get_value("BRANCH_IO_KEY", settings.BRANCH_IO_KEY) %>
 % if branch_key and not is_from_mobile_app:
