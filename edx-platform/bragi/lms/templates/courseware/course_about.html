@@ -142,54 +142,54 @@ from django.utils.translation import get_language_bidi
          ##  <div>${get_course_about_section(request, course, 'short_description')}</div>
         </div>
 
-        <div class="main-cta ${'mr-2' if get_language_bidi() else 'ml-2'} col-md-3 text-center">
-          %if user.is_authenticated and registered:
-            %if show_courseware_link:
-              <a class="btn" href="${course_target}">
-            %endif
+       ## <div class="main-cta ${'mr-2' if get_language_bidi() else 'ml-2'} col-md-3 text-center">
+       ##   %if user.is_authenticated and registered:
+       ##     %if show_courseware_link:
+       ##       <a class="btn" href="${course_target}">
+       ##     %endif
+       
+       ##     <span class="register disabled">${_("You are enrolled in this course")}</span>
 
-            <span class="register disabled">${_("You are enrolled in this course")}</span>
+       ##     %if show_courseware_link:
+       ##       <strong>${_("View Course")}</strong>
+       ##       </a>
+       ##     %endif
 
-            %if show_courseware_link:
-              <strong>${_("View Course")}</strong>
-              </a>
-            %endif
-
-          % elif is_course_full:
-            <span class="register disabled">
-              ${_("Course is full")}
-            </span>
-          % elif invitation_only and not can_enroll:
-            <span class="register disabled">${_("Enrollment in this course is by invitation only")}</span>
+       ##   % elif is_course_full:
+       ##     <span class="register disabled">
+       ##       ${_("Course is full")}
+       ##     </span>
+       ##   % elif invitation_only and not can_enroll:
+       ##     <span class="register disabled">${_("Enrollment in this course is by invitation only")}</span>
             ## Shib courses need the enrollment button to be displayed even when can_enroll is False,
             ## because AnonymousUsers cause can_enroll for shib courses to be False, but we need them to be able to click
             ## so that they can register and become a real user that can enroll.
-          % elif not is_shib_course and not can_enroll:
-            <span class="register disabled">${_("Enrollment is Closed")}</span>
-          %elif allow_anonymous:
-            %if show_courseware_link:
-              <a href="${course_target}">
-                <strong>${_("View Course")}</strong>
-              </a>
-            %endif
-          %else:
-            <%
-              if ecommerce_checkout:
-                reg_href = ecommerce_checkout_link
-              else:
-                reg_href="#"
-              if single_paid_mode:
-                href_class = "add-to-cart"
-              else:
-                href_class = "register"
-            %>
-            <a href="${reg_href}" class="btn ${href_class}">
-              ${_("Enroll")}
-            </a>
-            <div id="register_error"></div>
-          %endif
-        </div>
-      </div>
+      ##    % elif not is_shib_course and not can_enroll:
+      ##      <span class="register disabled">${_("Enrollment is Closed")}</span>
+      ##    %elif allow_anonymous:
+      ##      %if show_courseware_link:
+      ##        <a href="${course_target}">
+      ##          <strong>${_("View Course")}</strong>
+      ##        </a>
+      ##      %endif
+      ##    %else:
+      ##      <%
+      ##        if ecommerce_checkout:
+      ##          reg_href = ecommerce_checkout_link
+      ##        else:
+      ##          reg_href="#"
+      ##        if single_paid_mode:
+      ##          href_class = "add-to-cart"
+      ##        else:
+      ##          href_class = "register"
+      ##      %>
+      ##      <a href="${reg_href}" class="btn ${href_class}">
+      ##        ${_("Enroll")}
+      ##      </a>
+      ##      <div id="register_error"></div>
+      ##    %endif
+      ##  </div>
+      ##</div>
     </header>
 
     % if course_text_below_html:
@@ -350,7 +350,7 @@ from django.utils.translation import get_language_bidi
             ${course.display_name_with_default_escaped}
 
             <div class="main-cta ${'mr-2' if get_language_bidi() else 'ml-2'} text-center">
-              %if user.is_authenticated and registered:
+               %if user.is_authenticated and registered:
                 %if show_courseware_link:
                   <a class="btn" href="${course_target}">
                 %endif
