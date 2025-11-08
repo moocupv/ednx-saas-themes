@@ -139,7 +139,7 @@ from django.utils.translation import get_language_bidi
           <h1 class="course-title d-flex mb-2">
             ${course.display_name_with_default_escaped}
           </h1>
-          <div>${get_course_about_section(request, course, 'short_description')}</div>
+         ##  <div>${get_course_about_section(request, course, 'short_description')}</div>
         </div>
 
         <div class="main-cta ${'mr-2' if get_language_bidi() else 'ml-2'} col-md-3 text-center">
@@ -397,7 +397,7 @@ from django.utils.translation import get_language_bidi
               %endif
             </div>
           </h1>
-          <div>${get_course_about_section(request, course, 'short_description')}</div>
+          ## <div>${get_course_about_section(request, course, 'short_description')}</div>
         </div>
       </div>
     </header>
