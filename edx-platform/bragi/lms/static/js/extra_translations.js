@@ -67,32 +67,49 @@
     });
   }
 
-  // Cambiar botones de navegación (Register Now)
-  translateElements('.nav-link.nav-login');
+  // Función para traducir cuando el DOM esté listo
+  function applyTranslations() {
+    // Cambiar botones de navegación (Register Now)
+    translateElements('.nav-link.nav-login');
 
-  // Cambiar enlaces "Iniciar sesión" (nav-link px-2)
-  translateElements('.nav-link.px-2');
+    // Cambiar enlaces "Iniciar sesión" (nav-link px-2)
+    translateElements('.nav-link.px-2');
 
-  // Cambiar enlaces "APRENDE MÁS" (learn-more)
-  translateElements('.learn-more');
+    // Cambiar enlaces "APRENDE MÁS" (learn-more)
+    translateElements('.learn-more');
 
-  // Traducir campos de home_intro y home_text
-  // Ajusta estos selectores según el HTML real que genera el plugin
-  translateElements('input[placeholder="Buscar cursos"]');
-  translateElements('.home-intro .subtitle'); // Ajustar selector
-  translateElements('.home-text .title'); // Ajustar selector
-  
-  // Si necesitas esperar a que el DOM esté completamente cargado
-  setTimeout(() => {
+    // Traducir campos de home_intro y home_text
     translateElements('input[placeholder="Buscar cursos"]');
-    translateElements('.home-intro .subtitle');
-    translateElements('.home-text .title');
-  }, 100);
+    
+    // Traducir todos los h2 y h3
+    translateElements('h2');
+    translateElements('h3');
 
-  // Cambiar botones de Enroll en la página de curso
-  const path = window.location.pathname;
-  const match = path.match(/^\/courses\/course-v1:([^+]+)\+([^+]+)\+([^\/]+)\/about$/);
-  if (match) {
-    translateElements('.btn.register');
+    // Cambiar botones de Enroll en la página de curso
+    const path = window.location.pathname;
+    const match = path.match(/^\/courses\/course-v1:([^+]+)\+([^+]+)\+([^\/]+)\/about$/);
+    if (match) {
+      translateElements('.btn.register');
+    }
+  }
+
+  // Ejecutar inmediatamente
+  applyTranslations();
+
+  // Ejecutar después de un pequeño delay por si el contenido se carga dinámicamente
+  setTimeout(applyTranslations, 100);
+  setTimeout(applyTranslations, 500);
+
+  // Si usas un framework que carga contenido dinámicamente, 
+  // también puedes observar cambios en el DOM
+  if (window.MutationObserver) {
+    const observer = new MutationObserver(function(mutations) {
+      applyTranslations();
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
   }
 })();
