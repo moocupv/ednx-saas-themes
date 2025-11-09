@@ -144,23 +144,13 @@
     }
   }
 
-  // Ejecutar inmediatamente
-  applyTranslations();
-
-  // Ejecutar después de un pequeño delay por si el contenido se carga dinámicamente
-  setTimeout(applyTranslations, 100);
-  setTimeout(applyTranslations, 500);
-
-  // Si usas un framework que carga contenido dinámicamente, 
-  // también puedes observar cambios en el DOM
-  if (window.MutationObserver) {
-    const observer = new MutationObserver(function(mutations) {
-      applyTranslations();
-    });
-    
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
+  // Ejecutar cuando el DOM esté completamente cargado
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyTranslations);
+  } else {
+    applyTranslations();
   }
+
+  // Una sola ejecución adicional después de la carga completa
+  window.addEventListener('load', applyTranslations);
 })();
