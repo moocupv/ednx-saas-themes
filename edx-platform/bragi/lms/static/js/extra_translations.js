@@ -45,6 +45,48 @@
       "de": "Ausgewählte Kurse",
       "el": "Προτεινόμενα Μαθήματα",
       "it": "Corsi in Evidenza"
+    },
+    "Política de Cookies": {
+      "en": "Cookie Policy",
+      "de": "Cookie-Richtlinie",
+      "el": "Πολιτική Cookies",
+      "it": "Politica sui Cookie"
+    },
+    "FAQ": {
+      "en": "FAQ",
+      "de": "FAQ",
+      "el": "Συχνές Ερωτήσεις",
+      "it": "FAQ"
+    },
+    "Contacto": {
+      "en": "Contact",
+      "de": "Kontakt",
+      "el": "Επικοινωνία",
+      "it": "Contatto"
+    },
+    "Blog": {
+      "en": "Blog",
+      "de": "Blog",
+      "el": "Blog",
+      "it": "Blog"
+    },
+    "Aviso legal": {
+      "en": "Legal Notice",
+      "de": "Impressum",
+      "el": "Νομική Ειδοποίηση",
+      "it": "Note Legali"
+    },
+    "Política de privacidad": {
+      "en": "Privacy Policy",
+      "de": "Datenschutzrichtlinie",
+      "el": "Πολιτική Απορρήτου",
+      "it": "Politica sulla Privacy"
+    },
+    "Código de Honor": {
+      "en": "Honor Code",
+      "de": "Ehrenkodex",
+      "el": "Κώδικας Τιμής",
+      "it": "Codice d'Onore"
     }
   };
 
@@ -84,6 +126,15 @@
     // Traducir todos los h2 y h3
     translateElements('h2');
     translateElements('h3');
+
+    // Traducir enlaces del footer - colophon
+    translateElements('.nav-colophon-00 a');
+    translateElements('.nav-colophon-01 a');
+    translateElements('.nav-colophon-02 a');
+    translateElements('.nav-colophon-03 a');
+
+    // Traducir enlaces del footer - legal
+    translateElements('.nav-legal-01 a');
 
     // Cambiar botones de Enroll en la página de curso
     const path = window.location.pathname;
