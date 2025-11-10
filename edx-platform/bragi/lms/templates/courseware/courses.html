@@ -56,6 +56,11 @@
       <%static:include path="discovery/${template_name}.underscore" />
   </script>
   % endfor
+  <script>
+console.log('Template user_language:', "${user_language | n, js_escaped_string}");
+console.log('Navegador language:', navigator.language);
+console.log('HTML lang:', document.documentElement.lang);
+</script>
   <%static:require_module module_name="js/discovery/discovery_factory" class_name="DiscoveryFactory">
     DiscoveryFactory(
       ${course_discovery_meanings | n, dump_js_escaped_json},
