@@ -221,6 +221,7 @@ function getMappedLanguage(browserLang) {
     translateElements('.nav-colophon-02 a');
     translateElements('.nav-colophon-03 a');
     translateElements('.nav-legal-01 a');
+    translateElements('.mr-auto');
 
     const path = window.location.pathname;
     const match = path.match(/^\/courses\/course-v1:([^+]+)\+([^+]+)\+([^\/]+)\/about$/);
