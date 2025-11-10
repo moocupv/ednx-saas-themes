@@ -185,7 +185,7 @@ function getMappedLanguage(browserLang) {
       "it": "Intranet UPV"
     },
     "Comienza tu aprendizaje": {
-      "es": "Comienza a aprender",
+      "es": "Comienza a aprender"
     }
   };
 
