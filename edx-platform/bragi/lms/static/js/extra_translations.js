@@ -320,3 +320,71 @@
       console.error('Error cargando traducciones:', error);
     });
 })();
+
+(function () {
+  // ==========================================
+  // TRADUCCIÓN DEL BOTTOM PANEL
+  // ==========================================
+  
+  // Verificar si existe el panel FAQ en la página
+  const faqPanel = document.getElementById('panel-faq');
+  if (!faqPanel) {
+    return; // Si no existe el panel, no hacer nada
+  }
+  
+  // Función para obtener el valor de una cookie
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  }
+
+  // Obtener idioma de la cookie o del navegador
+  const cookieLang = getCookie('openedx-language-preference');
+  const browserLang = navigator.language.slice(0, 2);
+  const lang = cookieLang ? cookieLang.slice(0, 2) : browserLang;
+  
+  // Si el idioma es español, no hacer nada
+  if (lang === 'es') return;
+
+  // Cargar traducciones del bottom panel
+  const translationUrl = `/static/bragi/js/bottom_panel_${lang}.json`;
+  
+  fetch(translationUrl)
+    .then(response => {
+      if (!response.ok) {
+        console.warn(`No se encontró archivo de traducción para bottom panel: ${lang}`);
+        return null;
+      }
+      return response.json();
+    })
+    .then(translations => {
+      if (!translations) return;
+
+      // Traducir "¿Qué es un MOOC?"
+      const faqTitle = document.querySelector('#heading1 .panel-title a');
+      if (faqTitle && translations.faq_title) {
+        faqTitle.textContent = translations.faq_title;
+      }
+      
+      const faqContent = document.querySelector('#collapse1 .panel-body');
+      if (faqContent && translations.faq_content) {
+        faqContent.innerHTML = translations.faq_content;
+      }
+
+      // Traducir "Características de nuestros cursos"
+      const featuresTitle = document.querySelector('#heading2 .panel-title a');
+      if (featuresTitle && translations.features_title) {
+        featuresTitle.textContent = translations.features_title;
+      }
+      
+      const featuresContent = document.querySelector('#collapse2 .panel-body');
+      if (featuresContent && translations.features_content) {
+        featuresContent.innerHTML = translations.features_content;
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando traducciones del bottom panel:', error);
+    });
+})();
