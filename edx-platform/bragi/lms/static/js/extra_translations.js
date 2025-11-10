@@ -218,6 +218,24 @@ function getMappedLanguage(browserLang) {
       translateElements('.btn.register');
     }
 
+    // Sustitución específica: "Comienza tu aprendizaje" -> "Comienza a aprender" (solo español)
+    if (lang === 'es') {
+      const heroTitle = document.querySelector('h1.display-2.text-white');
+      if (heroTitle && heroTitle.textContent.includes('Comienza tu aprendizaje')) {
+        heroTitle.childNodes.forEach(node => {
+          if (node.nodeType === Node.TEXT_NODE && node.textContent.includes('Comienza tu aprendizaje')) {
+            node.textContent = node.textContent.replace('Comienza tu aprendizaje', 'Comienza a aprender');
+          }
+        });
+      }
+    }
+
+    // Sustitución específica: "SSO" -> "Intranet UPV" (todos los idiomas)
+    const providerName = document.querySelector('#provider-name');
+    if (providerName && providerName.textContent.trim() === 'SSO') {
+      providerName.textContent = 'Intranet UPV';
+    }
+
     // Borrar cookie temporal solo si fue creada por este script Y el usuario no está logueado
     if (!isLoggedIn && !cookieExistedBefore) {
       deleteCookie('openedx-language-preference');
