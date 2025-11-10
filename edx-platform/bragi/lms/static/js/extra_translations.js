@@ -42,58 +42,40 @@ function getMappedLanguage(browserLang) {
 }
 
 // ==========================================
-// INICIALIZACIÓN GLOBAL DE COOKIE (PRIMERO)
+// GESTIÓN DE COOKIE DE IDIOMA Y TRADUCCIONES
 // ==========================================
 
 (function () {
-  // Verificar si la cookie ya existía ANTES de cargar esta página
-  const cookieLang = getCookie('openedx-language-preference');
+  // Verificar si existe la cookie de idioma y la cookie de login
+  let cookieLang = getCookie('openedx-language-preference');
+  const isLoggedIn = getCookie('edxloggedin') !== null;
   const cookieExistedBefore = cookieLang !== null;
   
-  // Guardar estado globalmente para que todas las demás secciones lo sepan
-  window._cookieExistedBefore = cookieExistedBefore;
-  
-  if (!cookieExistedBefore) {
+  // Solo crear/sobrescribir la cookie si el usuario NO está logueado
+  if (!isLoggedIn && !cookieExistedBefore) {
     // Obtener idioma del navegador
     const browserLang = navigator.language || navigator.userLanguage;
     const mappedLang = getMappedLanguage(browserLang);
     
-    console.log('🔵 Creando cookie de idioma temporal:', mappedLang, 'desde navegador:', browserLang);
+    console.log('Usuario no logueado - Creando cookie de idioma temporal:', mappedLang, 'desde navegador:', browserLang);
     
     // Crear cookie de sesión
     setSessionCookie('openedx-language-preference', mappedLang);
+    cookieLang = mappedLang;
     
-    // Marcar que creamos la cookie
-    window._tempCookieCreated = true;
-  } else {
-    console.log('🟢 Cookie de idioma ya existía:', cookieLang);
-    window._tempCookieCreated = false;
-  }
-  
-  // Función para borrar la cookie temporal
-  function cleanupTempCookie() {
-    if (window._tempCookieCreated) {
-      console.log('🔴 Borrando cookie temporal de idioma');
-      deleteCookie('openedx-language-preference');
-      window._tempCookieCreated = false;
+    // Recargar la página para que el backend use la nueva cookie
+    if (window.location.pathname.includes('/courses') || window.location.pathname.includes('/about')) {
+      window.location.reload();
+      return;
     }
+  } else if (isLoggedIn) {
+    console.log('Usuario logueado - Respetando cookie de idioma existente:', cookieLang);
   }
-  
-  // Borrar cookie al final de la carga de la página
-  window.addEventListener('load', function() {
-    setTimeout(cleanupTempCookie, 1500);
-  });
-  
-  // También borrar cuando el usuario abandone la página
-  window.addEventListener('beforeunload', cleanupTempCookie);
-})();
 
-// ==========================================
-// GESTIÓN DE TRADUCCIONES DE INTERFAZ
-// ==========================================
-
-(function () {
-  const cookieLang = getCookie('openedx-language-preference');
+  // ==========================================
+  // TRADUCCIONES DE INTERFAZ
+  // ==========================================
+  
   const browserLang = navigator.language.slice(0, 2);
   const lang = cookieLang ? cookieLang.slice(0, 2) : browserLang;
 
@@ -235,6 +217,12 @@ function getMappedLanguage(browserLang) {
     if (match) {
       translateElements('.btn.register');
     }
+
+    // Borrar cookie temporal solo si fue creada por este script Y el usuario no está logueado
+    if (!isLoggedIn && !cookieExistedBefore) {
+      deleteCookie('openedx-language-preference');
+      console.log('Cookie temporal borrada después de aplicar traducciones');
+    }
   }
 
   if (document.readyState === 'loading') {
@@ -251,7 +239,20 @@ function getMappedLanguage(browserLang) {
 // ==========================================
 
 (function () {
-  const cookieLang = getCookie('openedx-language-preference');
+  // Verificar si existe la cookie de idioma y la cookie de login
+  let cookieLang = getCookie('openedx-language-preference');
+  const isLoggedIn = getCookie('edxloggedin') !== null;
+  const cookieExistedBefore = cookieLang !== null;
+  
+  // Si no existe y el usuario NO está logueado, crear cookie de sesión
+  if (!isLoggedIn && !cookieExistedBefore) {
+    const browserLang = navigator.language || navigator.userLanguage;
+    const mappedLang = getMappedLanguage(browserLang);
+    setSessionCookie('openedx-language-preference', mappedLang);
+    cookieLang = mappedLang;
+    console.log('Páginas estáticas - Cookie temporal creada:', mappedLang);
+  }
+
   const browserLang = navigator.language.slice(0, 2);
   const lang = cookieLang ? cookieLang.slice(0, 2) : browserLang;
   
@@ -260,7 +261,19 @@ function getMappedLanguage(browserLang) {
   const currentPath = window.location.pathname;
   const isStaticPage = staticPages.some(page => currentPath.includes(page));
   
-  if (!isStaticPage || lang === 'es') {
+  if (!isStaticPage) {
+    // Borrar cookie si fue creada y no estamos en página estática
+    if (!isLoggedIn && !cookieExistedBefore) {
+      deleteCookie('openedx-language-preference');
+    }
+    return;
+  }
+  
+  if (lang === 'es') {
+    // Borrar cookie si fue creada
+    if (!isLoggedIn && !cookieExistedBefore) {
+      deleteCookie('openedx-language-preference');
+    }
     return;
   }
 
@@ -282,7 +295,13 @@ function getMappedLanguage(browserLang) {
     }
   }
 
-  if (!pageConfig) return;
+  if (!pageConfig) {
+    // Borrar cookie si fue creada
+    if (!isLoggedIn && !cookieExistedBefore) {
+      deleteCookie('openedx-language-preference');
+    }
+    return;
+  }
 
   const translationUrl = `/static/bragi/js/static_pages_${lang}.json`;
   
@@ -316,6 +335,13 @@ function getMappedLanguage(browserLang) {
     })
     .catch(error => {
       console.error('Error cargando traducciones:', error);
+    })
+    .finally(() => {
+      // Borrar cookie si fue creada por el script Y el usuario no está logueado
+      if (!isLoggedIn && !cookieExistedBefore) {
+        deleteCookie('openedx-language-preference');
+        console.log('Cookie temporal borrada después de traducir página estática');
+      }
     });
 })();
 
@@ -327,11 +353,30 @@ function getMappedLanguage(browserLang) {
   const faqPanel = document.getElementById('panel-faq');
   if (!faqPanel) return;
   
-  const cookieLang = getCookie('openedx-language-preference');
+  // Verificar si existe la cookie de idioma y la cookie de login
+  let cookieLang = getCookie('openedx-language-preference');
+  const isLoggedIn = getCookie('edxloggedin') !== null;
+  const cookieExistedBefore = cookieLang !== null;
+  
+  // Si no existe y el usuario NO está logueado, crear cookie de sesión
+  if (!isLoggedIn && !cookieExistedBefore) {
+    const browserLang = navigator.language || navigator.userLanguage;
+    const mappedLang = getMappedLanguage(browserLang);
+    setSessionCookie('openedx-language-preference', mappedLang);
+    cookieLang = mappedLang;
+    console.log('Bottom panel - Cookie temporal creada:', mappedLang);
+  }
+
   const browserLang = navigator.language.slice(0, 2);
   const lang = cookieLang ? cookieLang.slice(0, 2) : browserLang;
   
-  if (lang === 'es') return;
+  if (lang === 'es') {
+    // Borrar cookie si fue creada
+    if (!isLoggedIn && !cookieExistedBefore) {
+      deleteCookie('openedx-language-preference');
+    }
+    return;
+  }
 
   const translationUrl = `/static/bragi/js/bottom_panel_${lang}.json`;
   
@@ -368,5 +413,12 @@ function getMappedLanguage(browserLang) {
     })
     .catch(error => {
       console.error('Error cargando traducciones del bottom panel:', error);
+    })
+    .finally(() => {
+      // Borrar cookie si fue creada por el script Y el usuario no está logueado
+      if (!isLoggedIn && !cookieExistedBefore) {
+        deleteCookie('openedx-language-preference');
+        console.log('Cookie temporal borrada después de traducir bottom panel');
+      }
     });
 })();
