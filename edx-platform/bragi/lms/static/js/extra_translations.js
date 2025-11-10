@@ -176,16 +176,6 @@ function getMappedLanguage(browserLang) {
       "de": "Ehrenkodex",
       "el": "Κώδικας Τιμής",
       "it": "Codice d'Onore"
-    },
-    "SSO": {
-      "es": "Intranet UPV",
-      "en": "Intranet UPV",
-      "de": "Intranet UPV",
-      "el": "Intranet UPV",
-      "it": "Intranet UPV"
-    },
-    "Comienza tu aprendizaje": {
-      "es": "Comienza a aprender"
     }
   };
 
