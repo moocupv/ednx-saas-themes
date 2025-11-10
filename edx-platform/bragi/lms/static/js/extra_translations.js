@@ -176,6 +176,16 @@ function getMappedLanguage(browserLang) {
       "de": "Ehrenkodex",
       "el": "Κώδικας Τιμής",
       "it": "Codice d'Onore"
+    },
+    "SSO": {
+      "es": "Intranet UPV",
+      "en": "Intranet UPV",
+      "de": "Intranet UPV",
+      "el": "Intranet UPV",
+      "it": "Intranet UPV"
+    },
+    "Comienza tu aprendizaje": {
+      "es": "Comienza a aprender",
     }
   };
 
@@ -218,36 +228,6 @@ function getMappedLanguage(browserLang) {
       translateElements('.btn.register');
     }
 
-    // Sustitución específica: "Comienza tu aprendizaje" -> "Comienza a aprender" (solo español)
-    // Condiciones relajadas: buscar cualquier h1 que contenga el texto
-    const allH1 = document.querySelectorAll('h1');
-    allH1.forEach(h1 => {
-      if (h1.innerHTML && h1.innerHTML.includes('Comienza tu aprendizaje')) {
-        console.log('Encontrado h1 con "Comienza tu aprendizaje"');
-        h1.innerHTML = h1.innerHTML.replace('Comienza tu aprendizaje', 'Comienza a aprender');
-      }
-    });
-
-    // Sustitución específica: "SSO" -> "Intranet UPV" (todos los idiomas)
-    // Condiciones relajadas: buscar por ID o por contenido exacto
-    const providerName = document.querySelector('#provider-name');
-    if (providerName) {
-      console.log('Encontrado #provider-name con texto:', providerName.textContent.trim());
-      if (providerName.textContent.trim() === 'SSO') {
-        providerName.textContent = 'Intranet UPV';
-        console.log('Cambiado a "Intranet UPV"');
-      }
-    }
-    
-    // Alternativa: buscar cualquier span que contenga exactamente "SSO"
-    const allSpans = document.querySelectorAll('span');
-    allSpans.forEach(span => {
-      if (span.textContent.trim() === 'SSO' && span.classList.contains('notranslate')) {
-        console.log('Encontrado span con "SSO"');
-        span.textContent = 'Intranet UPV';
-      }
-    });
-
     // Borrar cookie temporal solo si fue creada por este script Y el usuario no está logueado
     if (!isLoggedIn && !cookieExistedBefore) {
       deleteCookie('openedx-language-preference');
@@ -262,17 +242,6 @@ function getMappedLanguage(browserLang) {
   }
 
   window.addEventListener('load', applyTranslations);
-  
-  // Añadir observer para cambios dinámicos
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-      if (mutation.addedNodes.length) {
-        applyTranslations();
-      }
-    });
-  });
-  
-  observer.observe(document.body, { childList: true, subtree: true });
 })();
 
 // ==========================================
