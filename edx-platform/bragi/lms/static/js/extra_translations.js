@@ -57,6 +57,18 @@
       "el": "Προτεινόμενα Μαθήματα",
       "it": "Corsi in Evidenza"
     },
+    "Nuestro catálogo de cursos": {
+      "en": "Our Course Catalog",
+      "de": "Unser Kurskatalog",
+      "el": "Ο Κατάλογος Μαθημάτων μας",
+      "it": "Il nostro Catalogo Corsi"
+    },
+    "Explora nuestros cursos": {
+      "en": "Explore our courses",
+      "de": "Entdecken Sie unsere Kurse",
+      "el": "Εξερευνήστε τα μαθήματά μας",
+      "it": "Esplora i nostri corsi"
+    },
     "Política de Cookies": {
       "en": "Cookie Policy",
       "de": "Cookie-Richtlinie",
@@ -134,7 +146,8 @@
     // Traducir campos de home_intro y home_text
     translateElements('input[placeholder="Buscar cursos"]');
     
-    // Traducir todos los h2 y h3
+    // Traducir todos los h1, h2 y h3
+    translateElements('h1');
     translateElements('h2');
     translateElements('h3');
 
