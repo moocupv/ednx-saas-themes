@@ -190,7 +190,7 @@
   if (!pageConfig) return;
 
   // Cargar traducciones (ruta relativa)
-  const translationUrl = `static_pages_${lang}.json`;
+  const translationUrl = `/static/bragi/js/static_pages_${lang}.json`;
   
   fetch(translationUrl)
     .then(response => {
