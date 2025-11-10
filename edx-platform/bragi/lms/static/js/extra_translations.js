@@ -1,6 +1,16 @@
 (function () {
-  // Obtener idioma del navegador (primeros dos caracteres)
-  const lang = navigator.language.slice(0, 2); // "es", "de", "el", "it", etc.
+  // Función para obtener el valor de una cookie
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  }
+
+  // Obtener idioma: primero de la cookie, luego del navegador
+  const cookieLang = getCookie('openedx-language-preference');
+  const browserLang = navigator.language.slice(0, 2);
+  const lang = cookieLang || browserLang; // Prioridad a la cookie
 
   // Mapas de traducción
   const translations = {
@@ -156,8 +166,18 @@
 })();
 
 (function () {
-  // Obtener idioma del navegador
-  const lang = navigator.language.slice(0, 2);
+  // Función para obtener el valor de una cookie
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  }
+
+  // Obtener idioma: primero de la cookie, luego del navegador
+  const cookieLang = getCookie('openedx-language-preference');
+  const browserLang = navigator.language.slice(0, 2);
+  const lang = cookieLang || browserLang; // Prioridad a la cookie
   
   // Solo ejecutar en páginas estáticas
   const staticPages = ['/faq', '/privacy', '/cookies', '/tos', '/honor', '/contact'];
@@ -189,7 +209,7 @@
 
   if (!pageConfig) return;
 
-  // Cargar traducciones (ruta relativa)
+  // Cargar traducciones (ruta absoluta desde la raíz del sitio)
   const translationUrl = `/static/bragi/js/static_pages_${lang}.json`;
   
   fetch(translationUrl)
