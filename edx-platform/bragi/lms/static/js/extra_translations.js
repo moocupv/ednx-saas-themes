@@ -42,69 +42,6 @@ function getMappedLanguage(browserLang) {
 }
 
 // ==========================================
-// INTERCEPTOR DE FETCH PARA MODIFICAR Accept-Language
-// ==========================================
-
-(function() {
-  // Obtener el idioma de la cookie o del navegador
-  let cookieLang = getCookie('openedx-language-preference');
-  
-  if (!cookieLang) {
-    const browserLang = navigator.language || navigator.userLanguage;
-    cookieLang = getMappedLanguage(browserLang);
-  }
-  
-  // Guardar el fetch original
-  const originalFetch = window.fetch;
-  
-  // Sobrescribir fetch para añadir/modificar Accept-Language
-  window.fetch = function(url, options = {}) {
-    // Crear objeto de opciones si no existe
-    options = options || {};
-    options.headers = options.headers || {};
-    
-    // Convertir headers a objeto si es Headers
-    if (options.headers instanceof Headers) {
-      const headersObj = {};
-      options.headers.forEach((value, key) => {
-        headersObj[key] = value;
-      });
-      options.headers = headersObj;
-    }
-    
-    // Añadir o modificar Accept-Language con el código completo
-    options.headers['Accept-Language'] = cookieLang + ',' + cookieLang.split('-')[0] + ';q=0.9,en;q=0.8';
-    
-    // Llamar al fetch original con las opciones modificadas
-    return originalFetch(url, options);
-  };
-  
-  // Sobrescribir XMLHttpRequest para modificar Accept-Language
-  const originalOpen = XMLHttpRequest.prototype.open;
-  const originalSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
-  
-  XMLHttpRequest.prototype.open = function() {
-    this._customHeaders = this._customHeaders || {};
-    return originalOpen.apply(this, arguments);
-  };
-  
-  XMLHttpRequest.prototype.setRequestHeader = function(header, value) {
-    this._customHeaders = this._customHeaders || {};
-    this._customHeaders[header] = value;
-    return originalSetRequestHeader.apply(this, arguments);
-  };
-  
-  const originalSend = XMLHttpRequest.prototype.send;
-  XMLHttpRequest.prototype.send = function() {
-    // Añadir Accept-Language si no existe o modificarlo
-    if (!this._customHeaders || !this._customHeaders['Accept-Language']) {
-      this.setRequestHeader('Accept-Language', cookieLang + ',' + cookieLang.split('-')[0] + ';q=0.9,en;q=0.8');
-    }
-    return originalSend.apply(this, arguments);
-  };
-})();
-
-// ==========================================
 // GESTIÓN DE COOKIE DE IDIOMA Y TRADUCCIONES
 // ==========================================
 
