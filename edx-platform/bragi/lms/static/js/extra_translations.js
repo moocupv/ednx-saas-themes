@@ -11,15 +11,9 @@
     return null;
   }
 
-  // Función para crear una cookie
-  function setCookie(name, value, days) {
-    let expires = "";
-    if (days) {
-      const date = new Date();
-      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-      expires = "; expires=" + date.toUTCString();
-    }
-    document.cookie = name + "=" + encodeURIComponent(value) + expires + "; path=/";
+  // Función para crear una cookie de sesión (sin expiración)
+  function setCookie(name, value) {
+    document.cookie = name + "=" + encodeURIComponent(value) + "; path=/";
   }
 
   // Solo crear la cookie si NO existe (para no sobrescribir la de usuarios autenticados)
@@ -51,8 +45,8 @@
     
     console.log('Creando cookie de idioma temporal:', mappedLang, 'desde navegador:', browserLang);
     
-    // Crear cookie temporal (5 días)
-    setCookie('openedx-language-preference', mappedLang, 5);
+    // Crear cookie de sesión (se borra al cerrar el navegador)
+    setCookie('openedx-language-preference', mappedLang);
     
     // Actualizar la variable local
     cookieLang = mappedLang;
