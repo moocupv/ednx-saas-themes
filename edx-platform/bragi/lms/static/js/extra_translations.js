@@ -1,4 +1,8 @@
 (function () {
+  // ==========================================
+  // GESTIÓN DE COOKIE DE IDIOMA
+  // ==========================================
+  
   // Función para obtener el valor de una cookie
   function getCookie(name) {
     const value = `; ${document.cookie}`;
@@ -7,10 +11,66 @@
     return null;
   }
 
-  // Obtener idioma: primero de la cookie, luego del navegador
-  const cookieLang = getCookie('openedx-language-preference');
+  // Función para crear una cookie
+  function setCookie(name, value, days) {
+    let expires = "";
+    if (days) {
+      const date = new Date();
+      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+      expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + encodeURIComponent(value) + expires + "; path=/";
+  }
+
+  // Solo crear la cookie si NO existe (para no sobrescribir la de usuarios autenticados)
+  let cookieLang = getCookie('openedx-language-preference');
+  
+  if (!cookieLang) {
+    // Obtener idioma del navegador
+    const browserLang = navigator.language || navigator.userLanguage;
+    
+    // Mapear códigos de idioma del navegador a los de Open edX
+    const langMap = {
+      'es': 'es-419',
+      'es-ES': 'es-419',
+      'es-MX': 'es-419',
+      'es-AR': 'es-419',
+      'it': 'it-it',
+      'it-IT': 'it-it',
+      'en': 'en',
+      'en-US': 'en',
+      'en-GB': 'en',
+      'de': 'de-de',
+      'de-DE': 'de-de',
+      'el': 'el',
+      'el-GR': 'el'
+    };
+    
+    // Obtener el idioma mapeado o usar el primero (antes del guión)
+    const mappedLang = langMap[browserLang] || langMap[browserLang.split('-')[0]] || 'es-419';
+    
+    console.log('Creando cookie de idioma temporal:', mappedLang, 'desde navegador:', browserLang);
+    
+    // Crear cookie temporal (5 días)
+    setCookie('openedx-language-preference', mappedLang, 5);
+    
+    // Actualizar la variable local
+    cookieLang = mappedLang;
+    
+    // Recargar la página para que el backend use la nueva cookie
+    // Solo si estamos en /courses o /about
+    if (window.location.pathname.includes('/courses') || window.location.pathname.includes('/about')) {
+      window.location.reload();
+      return; // Salir para que no ejecute el resto del código antes de recargar
+    }
+  }
+
+  // ==========================================
+  // TRADUCCIONES DE INTERFAZ
+  // ==========================================
+  
   const browserLang = navigator.language.slice(0, 2);
-  // Normalizar ambos a 2 caracteres
+  // Normalizar a 2 caracteres
   const lang = cookieLang ? cookieLang.slice(0, 2) : browserLang;
 
   // Mapas de traducción
@@ -180,6 +240,10 @@
 })();
 
 (function () {
+  // ==========================================
+  // TRADUCCIONES DE PÁGINAS ESTÁTICAS
+  // ==========================================
+  
   // Función para obtener el valor de una cookie
   function getCookie(name) {
     const value = `; ${document.cookie}`;
