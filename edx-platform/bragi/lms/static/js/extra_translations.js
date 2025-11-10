@@ -10,7 +10,8 @@
   // Obtener idioma: primero de la cookie, luego del navegador
   const cookieLang = getCookie('openedx-language-preference');
   const browserLang = navigator.language.slice(0, 2);
-  const lang = cookieLang || browserLang; // Prioridad a la cookie
+  // Normalizar ambos a 2 caracteres
+  const lang = cookieLang ? cookieLang.slice(0, 2) : browserLang;
 
   // Mapas de traducción
   const translations = {
@@ -177,7 +178,8 @@
   // Obtener idioma: primero de la cookie, luego del navegador
   const cookieLang = getCookie('openedx-language-preference');
   const browserLang = navigator.language.slice(0, 2);
-  const lang = cookieLang || browserLang; // Prioridad a la cookie
+  // Normalizar ambos a 2 caracteres
+  const lang = cookieLang ? cookieLang.slice(0, 2) : browserLang;
   
   // Solo ejecutar en páginas estáticas
   const staticPages = ['/faq', '/privacy', '/cookies', '/tos', '/honor', '/contact'];
