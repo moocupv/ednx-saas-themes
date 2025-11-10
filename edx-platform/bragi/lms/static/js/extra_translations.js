@@ -42,36 +42,58 @@ function getMappedLanguage(browserLang) {
 }
 
 // ==========================================
-// GESTIÓN DE COOKIE DE IDIOMA Y TRADUCCIONES
+// INICIALIZACIÓN GLOBAL DE COOKIE (PRIMERO)
 // ==========================================
 
 (function () {
-  // Verificar si la cookie ya existía
-  let cookieLang = getCookie('openedx-language-preference');
+  // Verificar si la cookie ya existía ANTES de cargar esta página
+  const cookieLang = getCookie('openedx-language-preference');
   const cookieExistedBefore = cookieLang !== null;
+  
+  // Guardar estado globalmente para que todas las demás secciones lo sepan
+  window._cookieExistedBefore = cookieExistedBefore;
   
   if (!cookieExistedBefore) {
     // Obtener idioma del navegador
     const browserLang = navigator.language || navigator.userLanguage;
     const mappedLang = getMappedLanguage(browserLang);
     
-    console.log('Creando cookie de idioma temporal:', mappedLang, 'desde navegador:', browserLang);
+    console.log('🔵 Creando cookie de idioma temporal:', mappedLang, 'desde navegador:', browserLang);
     
     // Crear cookie de sesión
     setSessionCookie('openedx-language-preference', mappedLang);
-    cookieLang = mappedLang;
     
-    // Recargar la página para que el backend use la nueva cookie
-    if (window.location.pathname.includes('/courses') || window.location.pathname.includes('/about')) {
-      window.location.reload();
-      return;
+    // Marcar que creamos la cookie
+    window._tempCookieCreated = true;
+  } else {
+    console.log('🟢 Cookie de idioma ya existía:', cookieLang);
+    window._tempCookieCreated = false;
+  }
+  
+  // Función para borrar la cookie temporal
+  function cleanupTempCookie() {
+    if (window._tempCookieCreated) {
+      console.log('🔴 Borrando cookie temporal de idioma');
+      deleteCookie('openedx-language-preference');
+      window._tempCookieCreated = false;
     }
   }
-
-  // ==========================================
-  // TRADUCCIONES DE INTERFAZ
-  // ==========================================
   
+  // Borrar cookie al final de la carga de la página
+  window.addEventListener('load', function() {
+    setTimeout(cleanupTempCookie, 1500);
+  });
+  
+  // También borrar cuando el usuario abandone la página
+  window.addEventListener('beforeunload', cleanupTempCookie);
+})();
+
+// ==========================================
+// GESTIÓN DE TRADUCCIONES DE INTERFAZ
+// ==========================================
+
+(function () {
+  const cookieLang = getCookie('openedx-language-preference');
   const browserLang = navigator.language.slice(0, 2);
   const lang = cookieLang ? cookieLang.slice(0, 2) : browserLang;
 
@@ -213,11 +235,6 @@ function getMappedLanguage(browserLang) {
     if (match) {
       translateElements('.btn.register');
     }
-
-    // Borrar cookie si fue creada por el script
-    if (!cookieExistedBefore) {
-      deleteCookie('openedx-language-preference');
-    }
   }
 
   if (document.readyState === 'loading') {
@@ -234,18 +251,7 @@ function getMappedLanguage(browserLang) {
 // ==========================================
 
 (function () {
-  // Verificar si la cookie ya existía
-  let cookieLang = getCookie('openedx-language-preference');
-  const cookieExistedBefore = cookieLang !== null;
-  
-  // Si no existe, crear cookie de sesión
-  if (!cookieExistedBefore) {
-    const browserLang = navigator.language || navigator.userLanguage;
-    const mappedLang = getMappedLanguage(browserLang);
-    setSessionCookie('openedx-language-preference', mappedLang);
-    cookieLang = mappedLang;
-  }
-
+  const cookieLang = getCookie('openedx-language-preference');
   const browserLang = navigator.language.slice(0, 2);
   const lang = cookieLang ? cookieLang.slice(0, 2) : browserLang;
   
@@ -254,19 +260,7 @@ function getMappedLanguage(browserLang) {
   const currentPath = window.location.pathname;
   const isStaticPage = staticPages.some(page => currentPath.includes(page));
   
-  if (!isStaticPage) {
-    // Borrar cookie si fue creada y no estamos en página estática
-    if (!cookieExistedBefore) {
-      deleteCookie('openedx-language-preference');
-    }
-    return;
-  }
-  
-  if (lang === 'es') {
-    // Borrar cookie si fue creada
-    if (!cookieExistedBefore) {
-      deleteCookie('openedx-language-preference');
-    }
+  if (!isStaticPage || lang === 'es') {
     return;
   }
 
@@ -288,13 +282,7 @@ function getMappedLanguage(browserLang) {
     }
   }
 
-  if (!pageConfig) {
-    // Borrar cookie si fue creada
-    if (!cookieExistedBefore) {
-      deleteCookie('openedx-language-preference');
-    }
-    return;
-  }
+  if (!pageConfig) return;
 
   const translationUrl = `/static/bragi/js/static_pages_${lang}.json`;
   
@@ -328,12 +316,6 @@ function getMappedLanguage(browserLang) {
     })
     .catch(error => {
       console.error('Error cargando traducciones:', error);
-    })
-    .finally(() => {
-      // Borrar cookie si fue creada por el script
-      if (!cookieExistedBefore) {
-        deleteCookie('openedx-language-preference');
-      }
     });
 })();
 
@@ -345,28 +327,11 @@ function getMappedLanguage(browserLang) {
   const faqPanel = document.getElementById('panel-faq');
   if (!faqPanel) return;
   
-  // Verificar si la cookie ya existía
-  let cookieLang = getCookie('openedx-language-preference');
-  const cookieExistedBefore = cookieLang !== null;
-  
-  // Si no existe, crear cookie de sesión
-  if (!cookieExistedBefore) {
-    const browserLang = navigator.language || navigator.userLanguage;
-    const mappedLang = getMappedLanguage(browserLang);
-    setSessionCookie('openedx-language-preference', mappedLang);
-    cookieLang = mappedLang;
-  }
-
+  const cookieLang = getCookie('openedx-language-preference');
   const browserLang = navigator.language.slice(0, 2);
   const lang = cookieLang ? cookieLang.slice(0, 2) : browserLang;
   
-  if (lang === 'es') {
-    // Borrar cookie si fue creada
-    if (!cookieExistedBefore) {
-      deleteCookie('openedx-language-preference');
-    }
-    return;
-  }
+  if (lang === 'es') return;
 
   const translationUrl = `/static/bragi/js/bottom_panel_${lang}.json`;
   
@@ -403,11 +368,5 @@ function getMappedLanguage(browserLang) {
     })
     .catch(error => {
       console.error('Error cargando traducciones del bottom panel:', error);
-    })
-    .finally(() => {
-      // Borrar cookie si fue creada por el script
-      if (!cookieExistedBefore) {
-        deleteCookie('openedx-language-preference');
-      }
     });
 })();
