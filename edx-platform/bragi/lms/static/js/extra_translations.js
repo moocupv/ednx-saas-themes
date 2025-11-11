@@ -196,7 +196,7 @@ function getMappedLanguage(browserLang) {
       "en": 'We use our own and third-party cookies for security reasons, and also to improve user experience and learn about your browsing habits. Remember that, by using our services, you accept our legal notice and our cookie policy. We understand that if you continue browsing it is because you approve these terms.',
       "de": 'Wir verwenden eigene und Drittanbieter-Cookies aus Sicherheitsgründen sowie zur Verbesserung der Benutzererfahrung und zur Kenntnisnahme Ihrer Surfgewohnheiten. Denken Sie daran, dass Sie mit der Nutzung unserer Dienste unser Impressum und unsere Cookie-Richtlinie akzeptieren. Wir gehen davon aus, dass Sie diese Bedingungen akzeptieren, wenn Sie weiter surfen.',
       "it": 'Utilizziamo cookie proprietari e di terze parti per motivi de seguridad, e anche per migliorare l\'esperienza utente e conoscere le tue abitudini di navigazione. Ricorda que, utilizando i nostri servizi, accetti la nostra informativa legale e la nostra politica sui cookie. Comprendiamo que se continui a navigare è perché approvi questi termini.',
-      "el": 'Χρησιμοποιούμε δικά μας και τρίτων cookies για λόγους ασφαλείας, καθώς και για τη βελτίωση της εμπειρίας του χρήστη και για να γνωρίζουμε τις συνήθειές σας στην πλοήγηση. Θυμηθείτε ότι, χρησιμοποιώντας τις υπηρεσίες μας, αποδέχεστε τη νομική μας ειδοποίηση και την πολιτική μας για τα cookies. Κατανοούμε ότι αν συνεχίσετε την πλοήγηση, αποδέχετε αυτούς τους όρους.'
+      "el": 'Χρησιμοποιούμε δικά μας και τρίτων cookies για λόγους ασφαλείας, καθώς και για τη βελτίωση της εμπειρίας του χρήστη και για να γνωρίσουμε τις συνήθειές σας στην πλοήγηση. Θυμηθείτε ότι, χρησιμοποιώντας τις υπηρεσίες μας, αποδέχεστε τη νομική μας ειδοποίηση και την πολιτική μας για τα cookies. Κατανοούμε ότι αν συνεχίσετε την πλοήγηση, αποδέχετε αυτούς τους όρους.'
     },
     "cookie_button_text": {
       "es": "Acepto",
@@ -240,11 +240,11 @@ function getMappedLanguage(browserLang) {
           cookieMessageElement.textContent = cookieTranslations.message;
       }
 
-      // 2. Traducir el enlace "Saber más" (BÚSQUEDA ROBUSTA POR TEXTO)
+      // 2. Traducir el enlace "Saber más" (BÚSQUEDA ROBUSTA POR TEXTO Y CLASE)
+      // Buscamos cualquier elemento con la clase cc-link que aún contenga el texto en español original.
       let cookieLinkElement = null;
-      
-      // Iterar sobre todos los elementos con la clase .cc-link
-      const allLinks = document.querySelectorAll('a.cc-link');
+      const allLinks = document.querySelectorAll('a.cc-link'); 
+
       allLinks.forEach(link => {
           // Si el texto de un enlace coincide con el texto original "Saber más", lo guardamos.
           if (link.textContent.trim() === "Saber más") {
@@ -254,13 +254,14 @@ function getMappedLanguage(browserLang) {
       
       if (cookieLinkElement) {
           cookieLinkElement.textContent = cookieTranslations.message_link;
+          // Actualizamos también el atributo aria-label
           cookieLinkElement.setAttribute('aria-label', `${cookieTranslations.message_link} about cookies`);
-          console.log('DOM cookie link (Saber más) translated successfully.');
+          console.log('DOM cookie link (Saber más) translated successfully via text search.');
       } else {
           console.warn('No se pudo encontrar el enlace "Saber más" para traducción.');
       }
 
-      // 3. Traducir el botón "Acepto" (Mismo proceso de búsqueda robusta)
+      // 3. Traducir el botón "Acepto" 
       let acceptButton = null;
       const allButtons = document.querySelectorAll('a, button');
 
@@ -324,11 +325,11 @@ function getMappedLanguage(browserLang) {
         }
 
         // 2. Observar el DOM para traducir los elementos HTML del banner (solución MutationObserver)
-        // La traducción al DOM (translateCookieBannerDOM) debe suceder tan pronto como los elementos existan.
-        if (!document.querySelector('.cc-link')) {
+        // La clave es que el observer busque el elemento más débil (el link) para saber que el banner cargó.
+        if (!document.querySelector('a.cc-link')) { // Buscamos un enlace cc-link
             const observer = new MutationObserver((mutationsList, observer) => {
                 // Buscamos el elemento clave para saber que el banner se cargó
-                const linkElement = document.querySelector('.cc-link');
+                const linkElement = document.querySelector('a.cc-link');
                 if (linkElement) {
                     observer.disconnect(); // Detener la observación una vez encontrado
                     translateCookieBannerDOM(cookieTranslations);
@@ -339,7 +340,7 @@ function getMappedLanguage(browserLang) {
             const config = { childList: true, subtree: true };
             observer.observe(document.body, config);
 
-            // Intentar una traducción inmediata por si ya estaba cargado (aunque las consolas digan lo contrario)
+            // Intentar una traducción inmediata por si ya estaba cargado 
             translateCookieBannerDOM(cookieTranslations);
         } else {
             // Si el elemento ya está presente al inicio, traducir directamente
