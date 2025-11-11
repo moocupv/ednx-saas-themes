@@ -261,7 +261,7 @@ function getMappedLanguage(browserLang) {
             message_button: translations.cookie_button_text[lang],
             message_link: translations.cookie_link_text[lang]
         };
-        
+        console.log(
         if (cookieTranslations.message) {
              cookie_content.message = cookieTranslations.message;
              console.log('Cookie message translated.');
@@ -271,7 +271,7 @@ function getMappedLanguage(browserLang) {
             console.log('Cookie button translated.');
         }
         if (cookieTranslations.message_link) {
-            cookie_content.message_link = cookieTranslations.cookie_link_text[lang];
+            cookie_content.message_link = cookieTranslations.message_link;
             console.log('Cookie link translated.');
         }
     }
