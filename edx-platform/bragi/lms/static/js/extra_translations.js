@@ -196,7 +196,7 @@ function getMappedLanguage(browserLang) {
       "en": 'We use our own and third-party cookies for security reasons, and also to improve user experience and learn about your browsing habits. Remember that, by using our services, you accept our legal notice and our cookie policy. We understand that if you continue browsing it is because you approve these terms.',
       "de": 'Wir verwenden eigene und Drittanbieter-Cookies aus Sicherheitsgründen sowie zur Verbesserung der Benutzererfahrung und zur Kenntnisnahme Ihrer Surfgewohnheiten. Denken Sie daran, dass Sie mit der Nutzung unserer Dienste unser Impressum und unsere Cookie-Richtlinie akzeptieren. Wir gehen davon aus, dass Sie diese Bedingungen akzeptieren, wenn Sie weiter surfen.',
       "it": 'Utilizziamo cookie proprietari e di terze parti per motivi di seguridad, e anche per migliorare l\'esperienza utente e conoscere le tue abitudini di navigazione. Ricorda che, utilizzando i nostri servizi, accetti la nostra informativa legale e la nostra politica sui cookie. Comprendiamo che se continui a navigare è perché approvi questi termini.',
-      "el": 'Χρησιμοποιούμε δικά μας και τρίτων cookies για λόγους ασφαλείας, καθώς και για τη βελτίωση της εμπειρίας του χρήστη και για να γνωρίζουμε τις συνήθειές σας στην πλοήγηση. Θυμηθείτε ότι, χρησιμοποιώντας τις υπηρεσίες μας, αποδέχεστε τη νομική μας ειδοποίηση και την πολιτική μας για τα cookies. Κατανοούμε ότι αν συνεχίσετε την πλοήγηση, αποδέχεστε αυτούς τους όρους.'
+      "el": 'Χρησιμοποιούμε δικά μας και τρίτων cookies για λόγους ασφαλείας, καθώς και για τη βελτίωση της εμπειρίας του χρήστη και για να γνωρίζουμε τις συνήθειές σας στην πλοήγηση. Θυμηθείτε ότι, χρησιμοποιώντας τις υπηρεσίες μας, αποδέχεστε τη νομική μας ειδοποίηση και την πολιτική μας για τα cookies. Κατανοούμε ότι αν συνεχίσετε την πλοήγηση, αποδέχετε αυτούς τους όρους.'
     },
     "cookie_button_text": {
       "es": "Acepto",
@@ -272,8 +272,7 @@ function getMappedLanguage(browserLang) {
             console.log('Cookie button translated.');
         }
         if (cookieTranslations.message_link) {
-            // *** CORRECCIÓN DEL ERROR DE SINTAXIS ***
-            // Usar la propiedad 'message_link' de cookieTranslations, que ya es el texto traducido.
+            // CORRECCIÓN: Se usa la propiedad correcta de cookieTranslations.
             cookie_content.message_link = cookieTranslations.message_link; 
             console.log('Cookie link translated in JS object.');
         }
@@ -286,23 +285,47 @@ function getMappedLanguage(browserLang) {
                 cookieMessageElement.textContent = cookieTranslations.message;
             }
 
-            // Traducir el botón (buscando el elemento que contenga el texto "Acepto")
+            // --- BÚSQUEDA ROBUSTA PARA EL ENLACE "Saber más" ---
+            
+            // 1. Buscar por la clase .cc-link y el href específico para máxima precisión
+            let cookieLinkElement = document.querySelector('.cc-link[href="https://upvx.es/cookies"]');
+            
+            // 2. Fallback: Si no se encuentra, buscar por la clase genérica .cc-link
+            if (!cookieLinkElement) {
+                cookieLinkElement = document.querySelector('.cc-link');
+            }
+            
+            // 3. Si se encuentra el enlace, aplicar la traducción
+            if (cookieLinkElement) {
+                // Verificar que el enlace tiene el texto original "Saber más" antes de traducir, 
+                // o asumir que es el elemento correcto si ya se buscó por href/clase.
+                const currentLinkText = cookieLinkElement.textContent.trim();
+                
+                if (currentLinkText === "Saber más" || cookieLinkElement.className.includes('cc-link')) {
+                    cookieLinkElement.textContent = cookieTranslations.message_link;
+                    // Actualizamos el aria-label
+                    cookieLinkElement.setAttribute('aria-label', `${cookieTranslations.message_link} about cookies`);
+                    console.log('DOM cookie link (Saber más) translated successfully.');
+                }
+            } else {
+                console.warn('No se pudo encontrar el enlace "Saber más" para traducción.');
+            }
+            // --- FIN BÚSQUEDA ENLACE ---
+
+            // --- TRADUCCIÓN DEL BOTÓN "ACEPTO" (MENOS INTRUSIVA) ---
+            // Buscamos el botón que tenga el texto original "Acepto" y lo traducimos
             const acceptButton = Array.from(document.querySelectorAll('a, button'))
                 .find(el => el.textContent.trim() === "Acepto");
             
             if (acceptButton) {
                 acceptButton.textContent = cookieTranslations.message_button;
+                console.log('DOM cookie button (Acepto) translated successfully.');
+            } else {
+                 console.warn('No se pudo encontrar el botón de aceptación de cookies para traducción.');
             }
-
-            // Traducir el enlace "Saber más" (utilizando .cc-link)
-            const cookieLinkElement = document.querySelector('.cc-link');
-            if (cookieLinkElement) {
-                cookieLinkElement.textContent = cookieTranslations.message_link;
-                // También actualizamos el aria-label para accesibilidad
-                cookieLinkElement.setAttribute('aria-label', `${cookieTranslations.message_link} about cookies`);
-                console.log('DOM cookie link translated successfully.');
-            }
-        }, 300); // Se aumenta el retraso a 300ms
+            // --- FIN TRADUCCIÓN BOTÓN ---
+            
+        }, 300); // Mantenemos el retraso de 300ms
     }
   }
 
