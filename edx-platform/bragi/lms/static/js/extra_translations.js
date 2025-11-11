@@ -194,7 +194,7 @@ function getMappedLanguage(browserLang) {
     "cookie_message": {
       "es": 'Utilizamos cookies propias y de terceros por motivos de seguridad, y también para mejorar la experiencia del usuario y conocer tus hábitos de navegación. Recuerda que, al utilizar nuestros servicios, admites nuestro aviso legal y nuestra política de cookies. Entendemos que si continuas navegando es porque apruebas estos términos.',
       "en": 'We use our own and third-party cookies for security reasons, and also to improve user experience and learn about your browsing habits. Remember that, by using our services, you accept our legal notice and our cookie policy. We understand that if you continue browsing it is because you approve these terms.',
-      "de": 'Wir verwenden eigene und Drittanbieter-Cookies aus Sicherheitsgründen sowie zur Verbesserung der Benutzererfahrung und zur Kenntnisnahme Ihrer Surfgewohnheiten. Denken Sie daran, dass Sie mit der Nutzung unserer Dienste unser Impressum und unsere Cookie-Richtlinie akzeptieren. Wir gehen davon aus, dass Sie diese Bedingungen akzeptieren, wenn Sie weiter surfen.',
+      "de": 'Wir verwenden eigene und Drittanbieter-Cookies aus Sicherheitsgründen sowie zur Verbesserung der Benutzerfahrung und zur Kenntnisnahme Ihrer Surfgewohnheiten. Denken Sie daran, dass Sie mit der Nutzung unserer Dienste unser Impressum und unsere Cookie-Richtlinie akzeptieren. Wir gehen davon aus, dass Sie diese Bedingungen akzeptieren, wenn Sie weiter surfen.',
       "it": 'Utilizziamo cookie proprietari e di terze parti per motivi di sicurezza, e anche per migliorare l\'esperienza utente e conoscere le tue abitudini di navigazione. Ricorda che, utilizzando i nostri servizi, accetti la nostra informativa legale e la nostra politica sui cookie. Comprendiamo che se continui a navigare è perché approvi questi termini.',
       "el": 'Χρησιμοποιούμε δικά μας και τρίτων cookies για λόγους ασφαλείας, καθώς και για τη βελτίωση της εμπειρίας του χρήστη και για να γνωρίζουμε τις συνήθειές σας στην πλοήγηση. Θυμηθείτε ότι, χρησιμοποιώντας τις υπηρεσίες μας, αποδέχεστε τη νομική μας ειδοποίηση και την πολιτική μας για τα cookies. Κατανοούμε ότι αν συνεχίσετε την πλοήγηση, αποδέχεστε αυτούς τους όρους.'
     },
@@ -262,6 +262,7 @@ function getMappedLanguage(browserLang) {
             message_link: translations.cookie_link_text[lang]
         };
         
+        // 1. Aplicar al objeto JS (necesario para el script del banner)
         if (cookieTranslations.message) {
              cookie_content.message = cookieTranslations.message;
              console.log('Cookie message translated.');
@@ -273,18 +274,34 @@ function getMappedLanguage(browserLang) {
         if (cookieTranslations.message_link) {
             cookie_content.message_link = cookieTranslations.cookie_link_text[lang];
             console.log('Cookie link translated.');
+        }
+
+        // 2. Aplicar al DOM después de un pequeño retraso (para elementos dinámicos)
+        setTimeout(() => {
+            // Traducir el mensaje (usando .cc-message, si existe, o el contenedor)
+            const cookieMessageElement = document.querySelector('.cc-message');
+            if (cookieMessageElement) {
+                cookieMessageElement.textContent = cookieTranslations.message;
+            }
+
+            // Traducir el botón (asumiendo que tiene la clase .cc-btn o un selector similar)
+            // Esto es más complejo ya que los banners varían, pero intentamos con el texto original.
+            const cookieButtonElement = Array.from(document.querySelectorAll('a, button'))
+                .find(el => el.textContent.trim() === "Acepto" || el.textContent.trim() === cookieTranslations.message_button);
             
-            // --- CÓDIGO AÑADIDO: Aplicar traducción al elemento HTML del enlace 'Saber más' ---
-            // Se asume que el enlace tiene la clase 'cc-link' o se busca por el texto. 
-            // Usamos el selector de clase para mayor robustez.
+            if (cookieButtonElement && cookieButtonElement.textContent.trim() === "Acepto") {
+                cookieButtonElement.textContent = cookieTranslations.message_button;
+            }
+
+            // Traducir el enlace "Saber más" (utilizando .cc-link)
             const cookieLinkElement = document.querySelector('.cc-link');
             if (cookieLinkElement) {
                 cookieLinkElement.textContent = cookieTranslations.message_link;
                 // También actualizamos el aria-label para accesibilidad
                 cookieLinkElement.setAttribute('aria-label', `${cookieTranslations.message_link} sobre cookies`);
+                console.log('DOM cookie link translated successfully.');
             }
-            // ---------------------------------------------------------------------------------
-        }
+        }, 50); // 50ms de retraso para dar tiempo a renderizar el banner
     }
   }
 
