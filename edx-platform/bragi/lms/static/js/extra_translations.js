@@ -1,4 +1,20 @@
 // ==========================================
+// CONFIGURACIÓN GLOBAL DEL PANEL DE COOKIES
+// Esta variable será traducida automáticamente si el idioma no es español.
+// ==========================================
+var cookie_content ={
+    popup_colorbackground: "#323538",
+    popup_colortext: "#ffffff",
+    button_colorbackground: "#005379",
+    button_colortext: "#ffffff",
+    // Estos campos serán traducidos:
+    message: 'Utilizamos cookies propias y de terceros por motivos de seguridad, y también para mejorar la experiencia del usuario y conocer tus hábitos de navegación. Recuerda que, al utilizar nuestros servicios, admites nuestro aviso legal y nuestra política de cookies. Entendemos que si continuas navegando es porque apruebas estos términos.',
+    message_button: "Acepto",
+    message_link: "Saber más",
+    link_href: "https://upvx.es/cookies"
+};
+
+// ==========================================
 // FUNCIONES AUXILIARES COMPARTIDAS
 // ==========================================
 
@@ -15,7 +31,7 @@ function setSessionCookie(name, value) {
   document.cookie = name + "=" + encodeURIComponent(value) + "; path=/";
 }
 
-// ** FUNCIÓN deleteCookie ELIMINADA **
+// NOTA: La función deleteCookie ha sido eliminada, ya que se solicitó no borrar la cookie.
 
 // Función para obtener el idioma mapeado desde el navegador
 function getMappedLanguage(browserLang) {
@@ -39,7 +55,7 @@ function getMappedLanguage(browserLang) {
 }
 
 // ==========================================
-// GESTIÓN DE COOKIE DE IDIOMA Y TRADUCCIONES
+// GESTIÓN DE COOKIE DE IDIOMA Y TRADUCCIONES DE INTERFAZ
 // ==========================================
 
 (function () {
@@ -70,14 +86,14 @@ function getMappedLanguage(browserLang) {
   }
 
   // ==========================================
-  // TRADUCCIONES DE INTERFAZ
+  // MAPAS DE TRADUCCIÓN
   // ==========================================
   
   const browserLang = navigator.language.slice(0, 2);
   const lang = cookieLang ? cookieLang.slice(0, 2) : browserLang;
 
-  // Mapas de traducción
   const translations = {
+    // --- TRADUCCIONES DE INTERFAZ EXISTENTES ---
     "Register Now": {
       "es": "Regístrate ahora",
       "de": "Jetzt registrieren",
@@ -173,6 +189,28 @@ function getMappedLanguage(browserLang) {
       "de": "Ehrenkodex",
       "el": "Κώδικας Τιμής",
       "it": "Codice d'Onore"
+    },
+    // --- NUEVAS TRADUCCIONES PARA EL PANEL DE COOKIES ---
+    "cookie_message": {
+      "es": 'Utilizamos cookies propias y de terceros por motivos de seguridad, y también para mejorar la experiencia del usuario y conocer tus hábitos de navegación. Recuerda que, al utilizar nuestros servicios, admites nuestro aviso legal y nuestra política de cookies. Entendemos que si continuas navegando es porque apruebas estos términos.',
+      "en": 'We use our own and third-party cookies for security reasons, and also to improve user experience and learn about your browsing habits. Remember that, by using our services, you accept our legal notice and our cookie policy. We understand that if you continue browsing it is because you approve these terms.',
+      "de": 'Wir verwenden eigene und Drittanbieter-Cookies aus Sicherheitsgründen sowie zur Verbesserung der Benutzererfahrung und zur Kenntnisnahme Ihrer Surfgewohnheiten. Denken Sie daran, dass Sie mit der Nutzung unserer Dienste unser Impressum und unsere Cookie-Richtlinie akzeptieren. Wir gehen davon aus, dass Sie diese Bedingungen akzeptieren, wenn Sie weiter surfen.',
+      "it": 'Utilizziamo cookie proprietari e di terze parti per motivi di sicurezza, e anche per migliorare l\'esperienza utente e conoscere le tue abitudini di navigazione. Ricorda che, utilizzando i nostri servizi, accetti la nostra informativa legale e la nostra politica sui cookie. Comprendiamo che se continui a navigare è perché approvi questi termini.',
+      "el": 'Χρησιμοποιούμε δικά μας και τρίτων cookies για λόγους ασφαλείας, καθώς και για τη βελτίωση της εμπειρίας του χρήστη και για να γνωρίζουμε τις συνήθειές σας στην πλοήγηση. Θυμηθείτε ότι, χρησιμοποιώντας τις υπηρεσίες μας, αποδέχεστε τη νομική μας ειδοποίηση και την πολιτική μας για τα cookies. Κατανοούμε ότι αν συνεχίσετε την πλοήγηση, αποδέχεστε αυτούς τους όρους.'
+    },
+    "cookie_button_text": {
+      "es": "Acepto",
+      "en": "I Accept",
+      "de": "Ich akzeptiere",
+      "it": "Accetto",
+      "el": "Αποδέχομαι"
+    },
+    "cookie_link_text": {
+      "es": "Saber más",
+      "en": "Learn More",
+      "de": "Mehr erfahren",
+      "it": "Per saperne di più",
+      "el": "Μάθετε περισσότερα"
     }
   };
 
@@ -215,8 +253,28 @@ function getMappedLanguage(browserLang) {
     if (match) {
       translateElements('.btn.register');
     }
-
-    // ** LÍNEA ELIMINADA: if (!isLoggedIn && !cookieExistedBefore) { deleteCookie('openedx-language-preference'); ... } **
+    
+    // Aplicar la traducción al objeto cookie_content (si no es español)
+    if (lang !== 'es' && typeof cookie_content !== 'undefined') {
+        const cookieTranslations = {
+            message: translations.cookie_message[lang],
+            message_button: translations.cookie_button_text[lang],
+            message_link: translations.cookie_link_text[lang]
+        };
+        
+        if (cookieTranslations.message) {
+             cookie_content.message = cookieTranslations.message;
+             console.log('Cookie message translated.');
+        }
+        if (cookieTranslations.message_button) {
+            cookie_content.message_button = cookieTranslations.message_button;
+            console.log('Cookie button translated.');
+        }
+        if (cookieTranslations.message_link) {
+            cookie_content.message_link = cookieTranslations.cookie_link_text[lang];
+            console.log('Cookie link translated.');
+        }
+    }
   }
 
   if (document.readyState === 'loading') {
@@ -256,12 +314,10 @@ function getMappedLanguage(browserLang) {
   const isStaticPage = staticPages.some(page => currentPath.includes(page));
   
   if (!isStaticPage) {
-    // ** LÍNEA ELIMINADA: if (!isLoggedIn && !cookieExistedBefore) { deleteCookie('openedx-language-preference'); } **
     return;
   }
   
   if (lang === 'es') {
-    // ** LÍNEA ELIMINADA: if (!isLoggedIn && !cookieExistedBefore) { deleteCookie('openedx-language-preference'); } **
     return;
   }
 
@@ -284,7 +340,6 @@ function getMappedLanguage(browserLang) {
   }
 
   if (!pageConfig) {
-    // ** LÍNEA ELIMINADA: if (!isLoggedIn && !cookieExistedBefore) { deleteCookie('openedx-language-preference'); } **
     return;
   }
 
@@ -322,7 +377,7 @@ function getMappedLanguage(browserLang) {
       console.error('Error cargando traducciones:', error);
     })
     .finally(() => {
-      // ** LÍNEA ELIMINADA: if (!isLoggedIn && !cookieExistedBefore) { deleteCookie('openedx-language-preference'); ... } **
+      // La eliminación de la cookie temporal fue quitada aquí.
     });
 })();
 
@@ -352,7 +407,6 @@ function getMappedLanguage(browserLang) {
   const lang = cookieLang ? cookieLang.slice(0, 2) : browserLang;
   
   if (lang === 'es') {
-    // ** LÍNEA ELIMINADA: if (!isLoggedIn && !cookieExistedBefore) { deleteCookie('openedx-language-preference'); } **
     return;
   }
 
@@ -393,6 +447,6 @@ function getMappedLanguage(browserLang) {
       console.error('Error cargando traducciones del bottom panel:', error);
     })
     .finally(() => {
-      // ** LÍNEA ELIMINADA: if (!isLoggedIn && !cookieExistedBefore) { deleteCookie('openedx-language-preference'); ... } **
+      // La eliminación de la cookie temporal fue quitada aquí.
     });
 })();
