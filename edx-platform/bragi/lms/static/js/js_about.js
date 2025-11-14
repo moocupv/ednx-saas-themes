@@ -31,7 +31,7 @@
           newButton.classList.add('redirectEdx');
   
           // Cambiar texto y href
-          newButton.textContent = "Este curso se realizarÃ¡ en edx.org";
+          newButton.textContent = "Este curso se realizará en edx.org";
           newButton.href = redirectUrl;
   
           // Reemplazar el botÃ³n original
