@@ -27,7 +27,7 @@ from openedx.core.djangoapps.lang_pref.api import header_language_selector_is_en
 <%include file="../custom_colors.html"/>
 
 %if header_top:
-  ${header_top | n,  decode.utf}
+  ${header_top | n, decode.utf8}
 %endif
 
 <header class="global-header ${'slim' if course else ''} navbar">
