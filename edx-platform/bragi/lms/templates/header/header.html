@@ -26,7 +26,7 @@ from openedx.core.djangoapps.lang_pref.api import header_language_selector_is_en
   # Obtener la ruta actual
   current_path = request.path
   # Mostrar links solo en / y /courses
-  show_header_links = current_path == '/' or current_path.startswith('/courses')
+  show_header_links = current_path == '/' or current_path =='/courses'
 %>
 
 <%include file="../custom_colors.html"/>
