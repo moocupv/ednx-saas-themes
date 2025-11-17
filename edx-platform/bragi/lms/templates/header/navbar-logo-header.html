@@ -28,10 +28,10 @@ enterprise_customer_link = get_enterprise_learner_portal(request)
         % endif
     </a>
   % else:
-    <% is_homepage_link = request.path in ["/", "/courses"]; logo_link = configuration_helpers.get_value("url_enterprise", marketing_link("ROOT")) if is_homepage_link else marketing_link("ROOT") %>
+    <% is_homepage_link = request.path in ["/"]; logo_link = configuration_helpers.get_value("url_enterprise", marketing_link("ROOT")) if is_homepage_link else marketing_link("ROOT") %>
     <a href="${logo_link}" class="navbar-logo" ${"target=\"_blank\"" if is_homepage_link else ""}>
       <%block name="navigation_logo">
-      <img src="${branding_api.get_logo_url(is_secure) if request.path in ["/", "/courses"] else configuration_helpers.get_value("MFE_CONFIG", {}).get("LOGO_URL", branding_api.get_logo_url(is_secure))}" alt="${_("{platform_name} Home Page").format(platform_name=static.get_platform_name())}"/>
+      <img src="${branding_api.get_logo_url(is_secure) if request.path in ["/"] else configuration_helpers.get_value("MFE_CONFIG", {}).get("LOGO_URL", branding_api.get_logo_url(is_secure))}" alt="${_("{platform_name} Home Page").format(platform_name=static.get_platform_name())}"/>
       </%block>
     </a>
   % endif
