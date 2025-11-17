@@ -22,6 +22,11 @@ from openedx.core.djangoapps.lang_pref.api import header_language_selector_is_en
   header_top = theming.options('header', 'header_top', default=False)
   header_links = theming.options('header', 'header_links', default=[])
   header_langselector = theming.options('header', 'header_langselector', default=False)
+  
+  # Obtener la ruta actual
+  current_path = request.path
+  # Mostrar links solo en / y /courses
+  show_header_links = current_path == '/' or current_path.startswith('/courses')
 %>
 
 <%include file="../custom_colors.html"/>
@@ -47,7 +52,7 @@ from openedx.core.djangoapps.lang_pref.api import header_language_selector_is_en
             <%include file="../lang_selector.html"/>
           </div>
           %endif
-          %if header_links:
+          %if header_links and show_header_links:
             %for link in header_links:
              <li class="mobile-nav-item nav-item ${link.get('class', '') | h}">
               %if link.get('txt'):
