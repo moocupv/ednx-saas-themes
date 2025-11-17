@@ -20,7 +20,7 @@ from openedx.core.djangoapps.lang_pref.api import header_language_selector_is_en
 
 <%
   header_top = theming.options('header', 'header_top', default=False)
-  header_links = configuration_helpers.get_value('HEADER_LINKS', theming.options('header', 'header_links', default=[]))
+  header_links = configuration_helpers.get_value('header_links', theming.options('header', 'header_links', default=[]))
   header_langselector = theming.options('header', 'header_langselector', default=False)
 %>
 
