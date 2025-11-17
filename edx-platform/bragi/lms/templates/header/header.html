@@ -22,13 +22,12 @@ from openedx.core.djangoapps.lang_pref.api import header_language_selector_is_en
   header_top = theming.options('header', 'header_top', default=False)
   header_links = configuration_helpers.get_value('HEADER_LINKS', theming.options('header', 'header_links', default=[]))
   header_langselector = theming.options('header', 'header_langselector', default=False)
-  is_homepage_link = request.path in ["/", "/courses"]
 %>
 
 <%include file="../custom_colors.html"/>
 
 %if header_top:
-  ${header_top | n, decode.utf8}
+  ${header_top | n,  decode.utf}
 %endif
 
 <header class="global-header ${'slim' if course else ''} navbar">
@@ -48,13 +47,13 @@ from openedx.core.djangoapps.lang_pref.api import header_language_selector_is_en
             <%include file="../lang_selector.html"/>
           </div>
           %endif
-          %if header_links and is_homepage_link:
+          %if header_links:
             %for link in header_links:
-              %if link.get('txt') and link.get('url'):
-                <li class="mobile-nav-item nav-item ${link.get('class', '') | h}">
-                  <a class="nav-link px-2" href="${link.get('url') | h}" target="${link.get('target', '_self') | h}">${_(link.get('txt')) | h}</a>
-                </li>
+             <li class="mobile-nav-item nav-item ${link.get('class', '') | h}">
+              %if link.get('txt'):
+                <a class="nav-link px-2" href="${link.get('url', '#') | h}" target="${link.get('target', '_self') | h}">${_(link.get('txt')) | h}</a>
               %endif
+             </li>
             %endfor
           %endif
         </ul>
