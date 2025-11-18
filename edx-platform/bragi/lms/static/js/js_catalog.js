@@ -9,7 +9,7 @@
       <header class="course-image">
         <div class="cover-image">
           <img src="<%- image_url %>" alt="<%- name %> <%- number %>">
-          <div class="learn-more" aria-hidden="true">APRENDER MÁS</div>
+          <div class="learn-more" aria-hidden="true">APRENDER MAS</div>
         </div>
       </header>
 
