@@ -1,7 +1,7 @@
 (function () {
     const container = document.getElementById("course-catalog");
     if (!container) {
-        console.error('No se encontrÃ³ el contenedor con id "course-catalog".');
+        console.error('No se encontró el contenedor con id "course-catalog".');
         return;
     }
 
