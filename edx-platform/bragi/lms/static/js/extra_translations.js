@@ -118,6 +118,12 @@ function getMappedLanguage(browserLang) {
       "el": "ΜΑΘΕ ΠΕΡΙΣΣΟΤΕΡΑ",
       "it": "SCOPRI DI PIÙ"
     },
+     "Créditos optativos grado UPV": {
+    "en": "UPV Degree Elective Credits",
+    "de": "UPV Wahlpflichtmodule",
+    "el": "Προαιρετικές Πιστωτικές Μονάδες Πτυχίου UPV",
+    "it": "Crediti opzionali laurea UPV"
+  },
     "Buscar cursos": {
       "en": "Search courses",
       "de": "Kurse suchen",
