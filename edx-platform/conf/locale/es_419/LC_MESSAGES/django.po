@@ -3107,7 +3107,7 @@ msgstr ""
 #~ "de su navegador."
 
 #~ msgid "Learn more..."
-#~ msgstr "Aprender mas..."
+#~ msgstr "Aprender más..."
 
 #~ msgid "Featured / newest courses"
 #~ msgstr "Cursos nuevos / destacados"
