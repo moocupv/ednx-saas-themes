@@ -1,57 +1,28 @@
-// js_home_dual.js - Homepage con dos secciones de cursos con navegación horizontal
+// js_home_dual.js - Homepage con dos secciones de cursos independientes
 (function() {
     'use strict';
 
-    // Configuración para cada catálogo
-    const catalogs = [
-        {
-            containerId: 'course-catalog-main',
-            hideOrgs: ['poc', 'edxorg'],
-            hideCourseIds: ['course-v1:TecnologiasAvanzadasDeComunicaciones+5G-Industry4.0+2022-01'],
-            title: 'Cursos UPVx',
-            pageSize: 50,
-            mode: 'exclude' // Excluir organizaciones
-        },
-        {
-            containerId: 'course-catalog-nivelacion',
-            filterOrg: 'edxorg',
-            filterCourseNumbers: [
-                'bases-matematicas-derivadas',
-                'bases-matematicas-integrales',
-                'bases-matematicas-numeros-y-terminologia',
-                'bases-matematicas-algebra',
-                'fundamentos-de-mecanica-para-ingenieria',
-                'fundamentos-de-electromagnetismo-para',
-                'fundamentos-de-oscilaciones-y-ondas-para-ingenieria',
-                'el-enlace-quimico-y-las-interacciones',
-                'formulacion-y-nomenclatura-de-compuestos',
-                'introduccion-la-estructura-de-la-materia',
-                'primeros-pasos-en-termodinamica',
-                'reacciones-de-oxidacion-reduccion-conceptos-basicos',
-                'reacciones-quimicas-y-calculos',
-                'reacciones-redox-en-la-industria-y-la-naturaleza',
-                'sales-reacciones-y-aplicaciones',
-                'teoria-de-circuitos-conceptos-en-corriente-continua',
-                'acidos-y-bases-reacciones-y-aplicaciones'
-            ],
-            title: 'Cursos en edX',
-            pageSize: 50,
-            mode: 'include' // Incluir solo estos cursos
-        }
-    ];
+    console.log('=== Iniciando js_home_dual.js ===');
 
     // Clase para manejar un carrusel de cursos
     class CourseCarousel {
-        constructor(config) {
+        constructor(containerId, config) {
+            this.containerId = containerId;
             this.config = config;
-            this.container = document.getElementById(config.containerId);
+            this.container = document.getElementById(containerId);
             this.courses = [];
             this.currentIndex = 0;
-            this.coursesPerPage = 4; // Mostrar 4 cursos a la vez
+            this.coursesPerPage = 4;
             
-            if (this.container) {
-                this.init();
+            console.log(`[${this.containerId}] Inicializando carrusel con config:`, this.config);
+            
+            if (!this.container) {
+                console.error(`[${this.containerId}] Contenedor no encontrado!`);
+                return;
             }
+            
+            console.log(`[${this.containerId}] Contenedor encontrado`);
+            this.init();
         }
 
         init() {
@@ -80,6 +51,7 @@
                 <div class="carousel-indicators"></div>
             `;
             
+            this.container.innerHTML = '';
             this.container.appendChild(wrapper);
             
             // Referencias a elementos
@@ -91,41 +63,65 @@
             // Event listeners
             this.prevBtn.addEventListener('click', () => this.prev());
             this.nextBtn.addEventListener('click', () => this.next());
+            
+            console.log(`[${this.containerId}] Estructura creada`);
         }
 
         async fetchCourses() {
             try {
-                const response = await fetch('/api/courses/v1/courses/?page_size=' + this.config.pageSize);
+                console.log(`[${this.containerId}] Obteniendo cursos...`);
+                const response = await fetch('/api/courses/v1/courses/?page_size=100');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                const allCourses = data.results || [];
                 
-                console.log(`[${this.config.containerId}] Total cursos obtenidos:`, data.results.length);
+                console.log(`[${this.containerId}] Total cursos de la API:`, allCourses.length);
+                console.log(`[${this.containerId}] Primeros 3 cursos:`, allCourses.slice(0, 3).map(c => ({
+                    name: c.name,
+                    org: c.org,
+                    id: c.id,
+                    course_id: c.course_id
+                })));
                 
-                this.courses = this.filterCourses(data.results || []);
+                this.courses = this.filterCourses(allCourses);
                 
-                console.log(`[${this.config.containerId}] Cursos después del filtro:`, this.courses.length);
-                console.log(`[${this.config.containerId}] Títulos:`, this.courses.map(c => c.name));
+                console.log(`[${this.containerId}] Cursos después del filtro:`, this.courses.length);
+                console.log(`[${this.containerId}] Cursos filtrados:`, this.courses.map(c => ({
+                    name: c.name,
+                    org: c.org
+                })));
                 
                 this.renderCourses();
                 this.updateNavigation();
             } catch (error) {
-                console.error('Error fetching courses:', error);
-                this.container.innerHTML = '<p style="text-align: center; padding: 20px; color: red;">Error al cargar los cursos.</p>';
+                console.error(`[${this.containerId}] Error fetching courses:`, error);
+                this.container.innerHTML = `<p style="text-align: center; padding: 20px; color: red;">Error al cargar los cursos: ${error.message}</p>`;
             }
         }
 
         filterCourses(courses) {
-            return courses.filter(course => {
-                // Modo exclude: Filtrar por organizaciones a excluir
+            console.log(`[${this.containerId}] Filtrando cursos con modo: ${this.config.mode}`);
+            
+            const filtered = courses.filter(course => {
+                // Modo exclude: Excluir organizaciones específicas
                 if (this.config.mode === 'exclude') {
+                    // Excluir por organización
                     if (this.config.hideOrgs && this.config.hideOrgs.includes(course.org)) {
+                        console.log(`[${this.containerId}] Excluyendo curso "${course.name}" por org: ${course.org}`);
                         return false;
                     }
                     
-                    // Filtrar por IDs específicos a excluir
+                    // Excluir por ID específico
                     if (this.config.hideCourseIds && this.config.hideCourseIds.includes(course.id)) {
+                        console.log(`[${this.containerId}] Excluyendo curso "${course.name}" por ID`);
                         return false;
                     }
                     
+                    console.log(`[${this.containerId}] Incluyendo curso "${course.name}" (org: ${course.org})`);
                     return true;
                 }
                 
@@ -136,32 +132,61 @@
                         return false;
                     }
                     
-                    // Filtrar por course numbers si está configurado
-                    if (this.config.filterCourseNumbers) {
-                        const courseNumber = course.course_id.split('+')[1] || '';
-                        if (!this.config.filterCourseNumbers.includes(courseNumber)) {
-                            return false;
+                    // Si hay filtro de course numbers, verificar
+                    if (this.config.filterCourseNumbers && this.config.filterCourseNumbers.length > 0) {
+                        // Extraer el course number del course_id
+                        // Formato típico: course-v1:ORG+COURSENUMBER+RUN
+                        const parts = course.course_id.split('+');
+                        let courseNumber = '';
+                        
+                        if (parts.length >= 2) {
+                            courseNumber = parts[1];
+                        } else {
+                            // Formato alternativo: ORG/COURSENUMBER/RUN
+                            const slashParts = course.course_id.split('/');
+                            if (slashParts.length >= 2) {
+                                courseNumber = slashParts[1];
+                            }
                         }
+                        
+                        const isIncluded = this.config.filterCourseNumbers.includes(courseNumber);
+                        
+                        if (isIncluded) {
+                            console.log(`[${this.containerId}] Incluyendo curso "${course.name}" (courseNumber: ${courseNumber})`);
+                        }
+                        
+                        return isIncluded;
                     }
                     
+                    // Si no hay filtro de course numbers, incluir todos de la org
+                    console.log(`[${this.containerId}] Incluyendo curso "${course.name}" por org: ${course.org}`);
                     return true;
                 }
                 
-                return true;
+                return false;
             });
+            
+            return filtered;
         }
 
         renderCourses() {
             if (this.courses.length === 0) {
-                this.container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No hay cursos disponibles en esta categoría.</p>';
+                this.container.innerHTML = `<div class="carousel-header"><h2>${this.config.title}</h2></div><p style="text-align: center; padding: 20px; color: #666;">No hay cursos disponibles en esta categoría.</p>`;
+                console.log(`[${this.containerId}] No hay cursos para mostrar`);
                 return;
             }
             
+            console.log(`[${this.containerId}] Renderizando ${this.courses.length} cursos`);
+            
             this.track.innerHTML = '';
             
-            this.courses.forEach(course => {
+            this.courses.forEach((course, index) => {
                 const courseCard = this.createCourseCard(course);
                 this.track.appendChild(courseCard);
+                
+                if (index < 3) {
+                    console.log(`[${this.containerId}] Renderizado curso ${index + 1}: ${course.name}`);
+                }
             });
             
             this.createIndicators();
@@ -256,18 +281,53 @@
         }
     }
 
-    // Inicializar todos los carruseles cuando el DOM esté listo
+    // Inicializar carruseles
     function initCarousels() {
-        catalogs.forEach(config => {
-            new CourseCarousel(config);
+        console.log('Inicializando carruseles...');
+        
+        // Carrusel 1: Cursos UPVx (excluir poc y edxorg)
+        const catalog1 = new CourseCarousel('course-catalog-main', {
+            title: 'Cursos UPVx',
+            mode: 'exclude',
+            hideOrgs: ['poc', 'edxorg'],
+            hideCourseIds: ['course-v1:TecnologiasAvanzadasDeComunicaciones+5G-Industry4.0+2022-01']
         });
+        
+        // Carrusel 2: Cursos en edX (solo edxorg con course numbers específicos)
+        const catalog2 = new CourseCarousel('course-catalog-nivelacion', {
+            title: 'Cursos en edX',
+            mode: 'include',
+            filterOrg: 'edxorg',
+            filterCourseNumbers: [
+                'bases-matematicas-derivadas',
+                'bases-matematicas-integrales',
+                'bases-matematicas-numeros-y-terminologia',
+                'bases-matematicas-algebra',
+                'fundamentos-de-mecanica-para-ingenieria',
+                'fundamentos-de-electromagnetismo-para',
+                'fundamentos-de-oscilaciones-y-ondas-para-ingenieria',
+                'el-enlace-quimico-y-las-interacciones',
+                'formulacion-y-nomenclatura-de-compuestos',
+                'introduccion-la-estructura-de-la-materia',
+                'primeros-pasos-en-termodinamica',
+                'reacciones-de-oxidacion-reduccion-conceptos-basicos',
+                'reacciones-quimicas-y-calculos',
+                'reacciones-redox-en-la-industria-y-la-naturaleza',
+                'sales-reacciones-y-aplicaciones',
+                'teoria-de-circuitos-conceptos-en-corriente-continua',
+                'acidos-y-bases-reacciones-y-aplicaciones'
+            ]
+        });
+        
+        console.log('Carruseles inicializados');
     }
 
     // Esperar a que el DOM esté listo
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initCarousels);
     } else {
-        initCarousels();
+        // Si el DOM ya está listo, ejecutar inmediatamente
+        setTimeout(initCarousels, 100);
     }
 
     // Añadir estilos CSS
@@ -277,11 +337,11 @@
         #course-catalog-nivelacion {
             width: 100%;
             clear: both;
-            margin-bottom: 40px;
+            margin: 60px 0;
         }
         
         .course-carousel-wrapper {
-            margin: 40px 0;
+            margin: 0;
             padding: 0 20px;
             width: 100%;
             clear: both;
@@ -479,4 +539,6 @@
     `;
     
     document.head.insertAdjacentHTML('beforeend', styles);
+    
+    console.log('=== Estilos CSS añadidos ===');
 })();
