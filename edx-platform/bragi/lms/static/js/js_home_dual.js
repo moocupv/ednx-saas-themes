@@ -36,7 +36,7 @@
             this.courses = [];
             this.allCoursesFromAPI = [];
             this.currentIndex = 0;
-            this.coursesPerPage = 4;
+            this.coursesPerPage = 6; // Cambiado de 4 a 6 cursos por página
             
             console.log(`\n========================================`);
             console.log(`[${this.containerId}] CONSTRUCTOR LLAMADO`);
@@ -415,26 +415,8 @@
         const catalog2 = new CourseCarousel('course-catalog-nivelacion', {
             title: 'Cursos en edX',
             mode: 'include',
-            filterOrg: 'edxorg',
-            filterCourseNumbers: [
-                'bases-matematicas-derivadas',
-                'bases-matematicas-integrales',
-                'bases-matematicas-numeros-y-terminologia',
-                'bases-matematicas-algebra',
-                'fundamentos-de-mecanica-para-ingenieria',
-                'fundamentos-de-electromagnetismo-para',
-                'fundamentos-de-oscilaciones-y-ondas-para-ingenieria',
-                'el-enlace-quimico-y-las-interacciones',
-                'formulacion-y-nomenclatura-de-compuestos',
-                'introduccion-la-estructura-de-la-materia',
-                'primeros-pasos-en-termodinamica',
-                'reacciones-de-oxidacion-reduccion-conceptos-basicos',
-                'reacciones-quimicas-y-calculos',
-                'reacciones-redox-en-la-industria-y-la-naturaleza',
-                'sales-reacciones-y-aplicaciones',
-                'teoria-de-circuitos-conceptos-en-corriente-continua',
-                'acidos-y-bases-reacciones-y-aplicaciones'
-            ]
+            filterOrg: 'edxorg'
+            // NO filterCourseNumbers - queremos TODOS los cursos de edxorg
         });
         
         console.log('\n✅ ========== CARRUSELES INICIALIZADOS ==========\n');
@@ -533,8 +515,8 @@
         }
         
         .carousel-course-card {
-            min-width: calc(25% - 15px);
-            flex: 0 0 calc(25% - 15px);
+            min-width: calc(16.666% - 17px);
+            flex: 0 0 calc(16.666% - 17px);
             background: white;
             border-radius: 8px;
             overflow: hidden;
@@ -652,6 +634,13 @@
         
         .carousel-indicator:hover {
             background: #999;
+        }
+        
+        @media (max-width: 1400px) {
+            .carousel-course-card {
+                min-width: calc(25% - 15px);
+                flex: 0 0 calc(25% - 15px);
+            }
         }
         
         @media (max-width: 1200px) {
