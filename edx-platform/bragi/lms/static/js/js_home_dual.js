@@ -8,8 +8,9 @@
             containerId: 'course-catalog-main',
             hideOrgs: ['poc', 'edxorg'],
             hideCourseIds: ['course-v1:TecnologiasAvanzadasDeComunicaciones+5G-Industry4.0+2022-01'],
-            title: 'Cursos destacados',
-            pageSize: 50
+            title: 'Cursos UPVx',
+            pageSize: 50,
+            mode: 'exclude' // Excluir organizaciones
         },
         {
             containerId: 'course-catalog-nivelacion',
@@ -33,8 +34,9 @@
                 'teoria-de-circuitos-conceptos-en-corriente-continua',
                 'acidos-y-bases-reacciones-y-aplicaciones'
             ],
-            title: 'Cursos de nivelación',
-            pageSize: 50
+            title: 'Cursos en edX',
+            pageSize: 50,
+            mode: 'include' // Incluir solo estos cursos
         }
     ];
 
@@ -96,36 +98,53 @@
                 const response = await fetch('/api/courses/v1/courses/?page_size=' + this.config.pageSize);
                 const data = await response.json();
                 
+                console.log(`[${this.config.containerId}] Total cursos obtenidos:`, data.results.length);
+                
                 this.courses = this.filterCourses(data.results || []);
+                
+                console.log(`[${this.config.containerId}] Cursos después del filtro:`, this.courses.length);
+                console.log(`[${this.config.containerId}] Títulos:`, this.courses.map(c => c.name));
+                
                 this.renderCourses();
                 this.updateNavigation();
             } catch (error) {
                 console.error('Error fetching courses:', error);
+                this.container.innerHTML = '<p style="text-align: center; padding: 20px; color: red;">Error al cargar los cursos.</p>';
             }
         }
 
         filterCourses(courses) {
             return courses.filter(course => {
-                // Filtrar por organización si está configurado
-                if (this.config.hideOrgs && this.config.hideOrgs.includes(course.org)) {
-                    return false;
-                }
-                
-                if (this.config.filterOrg && course.org !== this.config.filterOrg) {
-                    return false;
-                }
-                
-                // Filtrar por IDs específicos
-                if (this.config.hideCourseIds && this.config.hideCourseIds.includes(course.id)) {
-                    return false;
-                }
-                
-                // Filtrar por course numbers si está configurado
-                if (this.config.filterCourseNumbers) {
-                    const courseNumber = course.course_id.split('+')[1] || '';
-                    if (!this.config.filterCourseNumbers.includes(courseNumber)) {
+                // Modo exclude: Filtrar por organizaciones a excluir
+                if (this.config.mode === 'exclude') {
+                    if (this.config.hideOrgs && this.config.hideOrgs.includes(course.org)) {
                         return false;
                     }
+                    
+                    // Filtrar por IDs específicos a excluir
+                    if (this.config.hideCourseIds && this.config.hideCourseIds.includes(course.id)) {
+                        return false;
+                    }
+                    
+                    return true;
+                }
+                
+                // Modo include: Solo incluir cursos específicos
+                if (this.config.mode === 'include') {
+                    // Debe ser de la organización correcta
+                    if (this.config.filterOrg && course.org !== this.config.filterOrg) {
+                        return false;
+                    }
+                    
+                    // Filtrar por course numbers si está configurado
+                    if (this.config.filterCourseNumbers) {
+                        const courseNumber = course.course_id.split('+')[1] || '';
+                        if (!this.config.filterCourseNumbers.includes(courseNumber)) {
+                            return false;
+                        }
+                    }
+                    
+                    return true;
                 }
                 
                 return true;
@@ -133,6 +152,11 @@
         }
 
         renderCourses() {
+            if (this.courses.length === 0) {
+                this.container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No hay cursos disponibles en esta categoría.</p>';
+                return;
+            }
+            
             this.track.innerHTML = '';
             
             this.courses.forEach(course => {
@@ -249,15 +273,30 @@
     // Añadir estilos CSS
     const styles = `
         <style>
+        #course-catalog-main,
+        #course-catalog-nivelacion {
+            width: 100%;
+            clear: both;
+            margin-bottom: 40px;
+        }
+        
         .course-carousel-wrapper {
             margin: 40px 0;
             padding: 0 20px;
+            width: 100%;
+            clear: both;
+        }
+        
+        .carousel-header {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #c8102e;
         }
         
         .carousel-header h2 {
             font-size: 28px;
             font-weight: bold;
-            margin-bottom: 20px;
+            margin: 0;
             color: #333;
         }
         
