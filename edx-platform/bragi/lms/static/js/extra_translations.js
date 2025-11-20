@@ -166,11 +166,11 @@ function getMappedLanguage(browserLang) {
       "el": "Μαθήματα στο edX",
       "it": "Corsi su edX"
     },
-    "Cargando cursos": {
-      "en": "Loading courses",
-      "de": "Kurse werden geladen",
-      "el": "Φόρτωση μαθημάτων",
-      "it": "Caricamento corsi"
+    "Cargando cursos...": {
+      "en": "Loading courses...",
+      "de": "Kurse werden geladen...",
+      "el": "Φόρτωση μαθημάτων...",
+      "it": "Caricamento corsi..."
     },
     "Política de Cookies": {
       "en": "Cookie Policy",
