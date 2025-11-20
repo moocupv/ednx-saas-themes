@@ -154,6 +154,19 @@ function getMappedLanguage(browserLang) {
       "el": "Εξερευνήστε τα μαθήματά μας",
       "it": "Esplora i nostri corsi"
     },
+      
+    "Cursos UPVx": {
+      "en": "UPVx Courses",
+      "de": "UPVx-Kurse",
+      "el": "Μαθήματα UPVx",
+      "it": "Corsi UPVx"
+    },
+    "Cursos en edX": {
+      "en": "Courses on edX",
+      "de": "Kurse auf edX",
+      "el": "Μαθήματα στο edX",
+      "it": "Corsi su edX"
+    },
     "Política de Cookies": {
       "en": "Cookie Policy",
       "de": "Cookie-Richtlinie",
