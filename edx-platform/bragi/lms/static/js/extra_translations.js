@@ -118,12 +118,12 @@ function getMappedLanguage(browserLang) {
       "el": "ΜΑΘΕ ΠΕΡΙΣΣΟΤΕΡΑ",
       "it": "SCOPRI DI PIÙ"
     },
-     "Créditos optativos grado UPV": {
-    "en": "UPV Degree Elective Credits",
-    "de": "UPV Wahlpflichtmodule",
-    "el": "Προαιρετικές Πιστωτικές Μονάδες Πτυχίου UPV",
-    "it": "Crediti opzionali laurea UPV"
-  },
+    "Créditos optativos grado UPV": {
+      "en": "UPV Degree Elective Credits",
+      "de": "UPV Wahlpflichtmodule",
+      "el": "Προαιρετικές Πιστωτικές Μονάδες Πτυχίου UPV",
+      "it": "Crediti opzionali laurea UPV"
+    },
     "Buscar cursos": {
       "en": "Search courses",
       "de": "Kurse suchen",
@@ -154,7 +154,6 @@ function getMappedLanguage(browserLang) {
       "el": "Εξερευνήστε τα μαθήματά μας",
       "it": "Esplora i nostri corsi"
     },
-      
     "Cursos UPVx": {
       "en": "UPVx Courses",
       "de": "UPVx-Kurse",
@@ -166,6 +165,12 @@ function getMappedLanguage(browserLang) {
       "de": "Kurse auf edX",
       "el": "Μαθήματα στο edX",
       "it": "Corsi su edX"
+    },
+    "Cargando cursos": {
+      "en": "Loading courses",
+      "de": "Kurse werden geladen",
+      "el": "Φόρτωση μαθημάτων",
+      "it": "Caricamento corsi"
     },
     "Política de Cookies": {
       "en": "Cookie Policy",
@@ -266,6 +271,9 @@ function getMappedLanguage(browserLang) {
     translateElements('.nav-colophon-03 a');
     translateElements('.nav-legal-01 a');
     translateElements('.mr-auto');
+    
+    // Traducir "Cargando cursos..." en el carrusel
+    translateElements('.carousel-track-container p');
 
     const path = window.location.pathname;
     const match = path.match(/^\/courses\/course-v1:([^+]+)\+([^+]+)\+([^\/]+)\/about$/);
