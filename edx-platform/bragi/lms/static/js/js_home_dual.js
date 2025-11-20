@@ -25,8 +25,8 @@
             this.container = document.getElementById(containerId);
             this.courses = [];
             this.allCoursesFromAPI = [];
-            this.currentIndex = 0;        // índice de página
-            this.coursesPerPage = 4;      // 4 cursos visibles por carrusel
+            this.currentIndex = 0;        // índice de página (0 = primera página)
+            this.coursesPerPage = 4;      // 4 cursos visibles por “pantalla”
             
             console.log(`\n========================================`);
             console.log(`[${this.containerId}] CONSTRUCTOR LLAMADO`);
@@ -115,7 +115,7 @@
                 
                 console.log(`[${this.containerId}] ✅ Total cursos de la API:`, this.allCoursesFromAPI.length);
                 
-                // Información rápida por organización
+                // Info por organización
                 const orgCount = {};
                 this.allCoursesFromAPI.forEach(c => {
                     orgCount[c.org] = (orgCount[c.org] || 0) + 1;
@@ -127,7 +127,16 @@
                 this.courses = this.filterCourses(this.allCoursesFromAPI);
 
                 console.log(`[${this.containerId}] ========== FIN FILTRADO ==========\n`);
-                console.log(`[${this.containerId}] ✅ Cursos después del filtro:`, this.courses.length);
+                console.log(`[${this.containerId}] ✅ Cursos después del filtro (antes de ordenar):`, this.courses.length);
+
+                // Orden alfabético por nombre
+                this.courses.sort((a, b) => {
+                    const nameA = (a.name || '').toLowerCase();
+                    const nameB = (b.name || '').toLowerCase();
+                    return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
+                });
+
+                console.log(`[${this.containerId}] ✅ Cursos después de ordenar alfabéticamente:`, this.courses.length);
                 
                 this.renderCourses();
                 this.updateNavigation();
@@ -146,11 +155,17 @@
         }
 
         /**
-         * Filtrado de cursos:
-         * - Aplica modo "exclude" o "include" según this.config.mode
-         * - Excluye SIEMPRE:
-         *   - cursos hidden
-         *   - cursos con end en el pasado
+         * Lógica de filtrado:
+         *  1) Para TODOS los carruseles:
+         *     - Excluye hidden === true
+         *     - Excluye end < hoy
+         *     - Excluye enrollment_start > hoy
+         *  2) Modo "exclude" (UPVx):
+         *     - Excluye org en hideOrgs
+         *     - Excluye id / course_id en hideCourseIds
+         *  3) Modo "include" (edX):
+         *     - Incluye solo org = filterOrg
+         *     - Si hay filterCourseNumbers, solo esos courseNumbers
          */
         filterCourses(courses) {
             console.log(`[${this.containerId}] filterCourses() - Modo: ${this.config.mode}`);
@@ -158,54 +173,71 @@
 
             const now = new Date();
 
-            const filtered = courses.filter(course => {
-                // 1) Excluir cursos ocultos
-                if (course.hidden === true) {
+            const filtered = courses.filter((course, idx) => {
+                const logPrefix = `[${this.containerId}][${idx}]`;
+
+                // 1) Excluir cursos hidden
+                if (course.hidden === true || course.hidden === 'true') {
+                    console.log(`${logPrefix} EXCLUIDO: hidden = true (${course.name})`);
                     return false;
                 }
 
-                // 2) Excluir cursos cuya fecha de fin ha pasado
+                // 2) Excluir cursos con fecha de fin pasada
                 if (course.end && course.end !== 'None') {
                     const endDate = new Date(course.end);
                     if (!isNaN(endDate.getTime()) && endDate < now) {
+                        console.log(`${logPrefix} EXCLUIDO: end < hoy (${course.end}) (${course.name})`);
                         return false;
                     }
                 }
 
-                // 3) IDs candidatos (id y course_id)
+                // 3) Excluir cursos cuya enrollment_start esté en el futuro
+                if (course.enrollment_start && course.enrollment_start !== 'None') {
+                    const enrollStart = new Date(course.enrollment_start);
+                    if (!isNaN(enrollStart.getTime()) && enrollStart > now) {
+                        console.log(`${logPrefix} EXCLUIDO: enrollment_start > hoy (${course.enrollment_start}) (${course.name})`);
+                        return false;
+                    }
+                }
+
+                // 4) IDs candidatos (id y course_id)
                 const candidateIds = [];
                 if (course.id) candidateIds.push(course.id);
                 if (course.course_id && course.course_id !== course.id) {
                     candidateIds.push(course.course_id);
                 }
 
-                // 4) Modo EXCLUDE
+                // 5) Modo EXCLUDE (UPVx)
                 if (this.config.mode === 'exclude') {
                     // Excluir por organización
                     if (this.config.hideOrgs && this.config.hideOrgs.includes(course.org)) {
+                        console.log(`${logPrefix} EXCLUIDO (exclude): org en hideOrgs (${course.org}) (${course.name})`);
                         return false;
                     }
 
-                    // Excluir por ID (id o course_id)
+                    // Excluir por ID / course_id
                     if (this.config.hideCourseIds && this.config.hideCourseIds.length > 0) {
-                        const matchId = candidateIds.some(id => this.config.hideCourseIds.includes(id));
-                        if (matchId) {
+                        const anyMatch = candidateIds.some(id => this.config.hideCourseIds.includes(id));
+                        if (anyMatch) {
+                            console.log(`${logPrefix} EXCLUIDO (exclude): id/course_id en hideCourseIds (${candidateIds.join(', ')}) (${course.name})`);
                             return false;
                         }
                     }
 
-                    // Todo lo demás entra
+                    // Si no ha caído en ningún filtro de exclude, se incluye
+                    console.log(`${logPrefix} INCLUIDO (exclude): ${course.name}`);
                     return true;
                 }
 
-                // 5) Modo INCLUDE
+                // 6) Modo INCLUDE (edX)
                 if (this.config.mode === 'include') {
-                    // Debe ser de la organización indicada
+                    // Debe cumplir la org
                     if (this.config.filterOrg && course.org !== this.config.filterOrg) {
+                        // console.log(`${logPrefix} EXCLUIDO (include): org != filterOrg (${course.org} != ${this.config.filterOrg}) (${course.name})`);
                         return false;
                     }
 
-                    // Si hay filtro de course numbers, aplicar
+                    // Si hay lista de courseNumbers, filtrar por ahí
                     if (this.config.filterCourseNumbers && this.config.filterCourseNumbers.length > 0) {
                         let courseNumber = '';
                         if (course.course_id) {
@@ -219,14 +251,18 @@
                             }
                         }
 
-                        return this.config.filterCourseNumbers.includes(courseNumber);
+                        const included = this.config.filterCourseNumbers.includes(courseNumber);
+                        console.log(`${logPrefix} (include) courseNumber="${courseNumber}" incluido=${included} (${course.name})`);
+                        return included;
                     }
 
-                    // Si solo filtramos por org, ya hemos pasado el filtro
+                    // Si solo filtramos por org, ya está incluido
+                    console.log(`${logPrefix} INCLUIDO (include): ${course.name}`);
                     return true;
                 }
 
-                // Modo desconocido: no incluir
+                // 7) Si el modo es desconocido, excluimos por seguridad
+                console.log(`${logPrefix} EXCLUIDO: modo desconocido (${this.config.mode}) (${course.name})`);
                 return false;
             });
 
@@ -298,14 +334,16 @@
         }
 
         updateCarousel() {
-            // currentIndex se interpreta como "página", no como índice de curso.
-            // Cada página desplaza el ancho completo (100%).
+            // currentIndex es la “página”, cada página desplaza el 100% del ancho visible
             const offset = -(this.currentIndex * 100);
             this.track.style.transform = `translateX(${offset}%)`;
-            
+
+            const startIdx = this.currentIndex * this.coursesPerPage;
+            const endIdx = Math.min(startIdx + this.coursesPerPage, this.courses.length);
+
             console.log(
                 `[${this.containerId}] updateCarousel() - página: ${this.currentIndex}, ` +
-                `coursesPerPage: ${this.coursesPerPage}, offset: ${offset}%, totalCourses: ${this.courses.length}`
+                `mostrando cursos [${startIdx} .. ${endIdx - 1}] de ${this.courses.length}, offset: ${offset}%`
             );
         }
 
@@ -361,7 +399,7 @@
             title: 'Cursos en edX',
             mode: 'include',
             filterOrg: 'edxorg'
-            // Sin filterCourseNumbers: queremos TODOS los cursos de edxorg
+            // Sin filterCourseNumbers: TODOS los cursos de edxorg (sujetos a hidden/end/enrollment_start)
         });
         
         console.log('\n✅ ========== CARRUSELES INICIALIZADOS ==========\n');
@@ -456,20 +494,28 @@
         .carousel-track {
             display: flex;
             transition: transform 0.4s ease-in-out;
-            gap: 20px;
+            /* IMPORTANTE: sin gap aquí para que 4 tarjetas = 100% exactos */
         }
         
         .carousel-course-card {
-            min-width: calc(25% - 15px);
-            flex: 0 0 calc(25% - 15px);
+            flex: 0 0 25%;
+            max-width: 25%;
+            box-sizing: border-box;
+            padding: 0 10px;
+            background: transparent;
+        }
+
+        .carousel-course-card > .course-card-link {
+            display: block;
             background: white;
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
         }
-        
-        .carousel-course-card:hover {
+
+        .carousel-course-card > .course-card-link:hover {
             transform: translateY(-5px);
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
@@ -477,7 +523,6 @@
         .course-card-link {
             text-decoration: none;
             color: inherit;
-            display: block;
         }
         
         .course-image {
@@ -555,22 +600,22 @@
 
         @media (max-width: 1400px) {
             .carousel-course-card {
-                min-width: calc(25% - 15px);
-                flex: 0 0 calc(25% - 15px);
+                flex: 0 0 25%;
+                max-width: 25%;
             }
         }
         
         @media (max-width: 1200px) {
             .carousel-course-card {
-                min-width: calc(33.333% - 14px);
-                flex: 0 0 calc(33.333% - 14px);
+                flex: 0 0 33.3333%;
+                max-width: 33.3333%;
             }
         }
         
         @media (max-width: 768px) {
             .carousel-course-card {
-                min-width: calc(50% - 10px);
-                flex: 0 0 calc(50% - 10px);
+                flex: 0 0 50%;
+                max-width: 50%;
             }
             
             .carousel-btn {
@@ -585,8 +630,8 @@
         
         @media (max-width: 480px) {
             .carousel-course-card {
-                min-width: 100%;
                 flex: 0 0 100%;
+                max-width: 100%;
             }
             
             .course-carousel-wrapper {
