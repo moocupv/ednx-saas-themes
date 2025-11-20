@@ -1,18 +1,65 @@
-// js_home_dual.js - Versión corregida
+// js_home_dual.js - Versión corregida (fetch único + paginación + IDs nuevos)
 (function() {
     'use strict';
 
     console.log('=== INICIANDO js_home_dual.js ===');
     console.log('Timestamp:', new Date().toISOString());
 
+    // ============================================================
+    // FETCH GLOBAL DE TODOS LOS CURSOS (CON PAGINACIÓN)
+    // ============================================================
+    let allCoursesPromise = null;
+
+    async function fetchAllCoursesFromAPI() {
+        if (!allCoursesPromise) {
+            allCoursesPromise = (async () => {
+                console.log('\n🌐 [GLOBAL] Iniciando descarga de TODOS los cursos de la API...');
+                const initialUrl = '/api/courses/v1/courses/?page_size=100';
+                let url = initialUrl;
+                let allCourses = [];
+                let page = 1;
+
+                while (url) {
+                    console.log(`[GLOBAL] Llamando a: ${url}`);
+                    const response = await fetch(url);
+                    console.log(`[GLOBAL] Status respuesta página ${page}:`, response.status);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error en página ${page}! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    const batch = data.results || [];
+                    const pagination = data.pagination || {};
+
+                    console.log(`[GLOBAL] Página ${page}: ${batch.length} cursos`);
+                    allCourses = allCourses.concat(batch);
+
+                    if (pagination.next) {
+                        url = pagination.next; // puede ser absoluta, fetch la soporta
+                        page += 1;
+                    } else {
+                        url = null;
+                    }
+                }
+
+                console.log(`[GLOBAL] ✅ Descarga completada. Total cursos: ${allCourses.length}`);
+                return allCourses;
+            })();
+        }
+
+        return allCoursesPromise;
+    }
+
     // Verificar que los contenedores existen
     function checkContainers() {
         console.log('--- VERIFICACIÓN DE CONTENEDORES ---');
-        const main = document.getElementById('course-catalog-main');
-        const nivel = document.getElementById('course-catalog-nivelacion');
+        const main = document.getElementById('catalogo-upvx');
+        const nivel = document.getElementById('catalogo-edx');
         
-        console.log('Contenedor main:', main ? 'ENCONTRADO' : 'NO ENCONTRADO');
-        console.log('Contenedor nivelacion:', nivel ? 'ENCONTRADO' : 'NO ENCONTRADO');
+        console.log('Contenedor catalogo-upvx:', main ? 'ENCONTRADO' : 'NO ENCONTRADO');
+        console.log('Contenedor catalogo-edx:', nivel ? 'ENCONTRADO' : 'NO ENCONTRADO');
         
         return main && nivel;
     }
@@ -97,23 +144,14 @@
         }
 
         async fetchCourses() {
-            console.log(`\n[${this.containerId}] ========== FETCH COURSES ==========`);
+            console.log(`\n[${this.containerId}] ========== FETCH COURSES (USANDO FETCH GLOBAL) ==========`);
 
             try {
-                const url = '/api/courses/v1/courses/?page_size=100';
-                console.log(`[${this.containerId}] Fetch URL:`, url);
-                
-                const response = await fetch(url);
-                console.log(`[${this.containerId}] Response status:`, response.status);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                this.allCoursesFromAPI = data.results || [];
-                
-                console.log(`[${this.containerId}] ✅ Total cursos de la API:`, this.allCoursesFromAPI.length);
+                // 🔹 Usa el fetch global que ya descarga TODAS las páginas
+                const allCourses = await fetchAllCoursesFromAPI();
+                this.allCoursesFromAPI = allCourses;
+
+                console.log(`[${this.containerId}] ✅ Total cursos de la API (compartidos):`, this.allCoursesFromAPI.length);
                 
                 // Info por organización
                 const orgCount = {};
@@ -233,7 +271,6 @@
                 if (this.config.mode === 'include') {
                     // Debe cumplir la org
                     if (this.config.filterOrg && course.org !== this.config.filterOrg) {
-                        // console.log(`${logPrefix} EXCLUIDO (include): org != filterOrg (${course.org} != ${this.config.filterOrg}) (${course.name})`);
                         return false;
                     }
 
@@ -387,7 +424,7 @@
         }
         
         console.log('\n--- Creando Carrusel 1: Cursos UPVx ---');
-        const catalog1 = new CourseCarousel('course-catalog-main', {
+        const catalog1 = new CourseCarousel('catalogo-upvx', {
             title: 'Cursos UPVx',
             mode: 'exclude',
             hideOrgs: ['poc', 'edxorg'],
@@ -395,7 +432,7 @@
         });
         
         console.log('\n--- Creando Carrusel 2: Cursos en edX ---');
-        const catalog2 = new CourseCarousel('course-catalog-nivelacion', {
+        const catalog2 = new CourseCarousel('catalogo-edx', {
             title: 'Cursos en edX',
             mode: 'include',
             filterOrg: 'edxorg'
@@ -413,7 +450,7 @@
         attempts++;
         console.log(`Intento de inicialización #${attempts}`);
         
-        if (document.getElementById('course-catalog-main') && document.getElementById('course-catalog-nivelacion')) {
+        if (document.getElementById('catalogo-upvx') && document.getElementById('catalogo-edx')) {
             console.log('✅ Contenedores encontrados, iniciando...');
             initCarousels();
         } else if (attempts < maxAttempts) {
@@ -443,8 +480,8 @@
             display: none !important;
         }
         
-        #course-catalog-main,
-        #course-catalog-nivelacion {
+        #catalogo-upvx,
+        #catalogo-edx {
             width: 100%;
             clear: both;
             margin: 60px 0;
