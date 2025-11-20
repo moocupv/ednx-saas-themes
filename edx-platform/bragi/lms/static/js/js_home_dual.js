@@ -800,7 +800,7 @@
             }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 600px) {
             .carousel-course-card {
                 flex: 0 0 100%;
             }
