@@ -280,6 +280,7 @@ function getMappedLanguage(browserLang) {
     
     // Traducir "Cargando cursos..." en el carrusel
     translateElements('.carousel-track-container p');
+    translateElements('.carousel-header small');
 
     const path = window.location.pathname;
     const match = path.match(/^\/courses\/course-v1:([^+]+)\+([^+]+)\+([^\/]+)\/about$/);
