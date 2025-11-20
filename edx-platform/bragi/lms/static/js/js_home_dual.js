@@ -172,11 +172,11 @@
         getCoursesPerPage() {
             const w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
 
-            if (w <= 480) {
+            if (w <= 600) {
                 return 1; // 100%
-            } else if (w <= 768) {
+            } else if (w <= 1000) {
                 return 2; // 50%
-            } else if (w <= 1200) {
+            } else if (w <= 1400) {
                 return 3; // 33.3333%
             } else {
                 return 4; // 25%
