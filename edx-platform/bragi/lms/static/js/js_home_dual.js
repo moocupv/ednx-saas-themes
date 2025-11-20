@@ -1,4 +1,4 @@
-// js_home_dual.js - Versión con paginación, filtros desde el HTML y tooltips en hover
+// js_home_dual.js - Versión con paginación, filtros desde el HTML, tooltips en hover y caché en localStorage
 (function() {
     'use strict';
 
@@ -26,22 +26,51 @@
         }
     }
 
-    // ---------- FETCH GLOBAL DE TODOS LOS CURSOS (CON PAGINACIÓN) ----------
+    // ---------- FETCH GLOBAL DE TODOS LOS CURSOS (CON PAGINACIÓN + CACHÉ) ----------
 
     let allCoursesCache = null;
     let allCoursesFetchPromise = null;
 
+    // Caché en localStorage
+    const COURSES_CACHE_KEY = 'upvx_courses_cache_v1';
+    const COURSES_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutos
+
     async function fetchAllCoursesFromAPI() {
+        // 1) Caché en memoria (misma carga de página)
         if (allCoursesCache) {
-            console.log('[GLOBAL] Usando cursos cacheados:', allCoursesCache.length);
+            console.log('[GLOBAL] Usando cursos cacheados en memoria:', allCoursesCache.length);
             return allCoursesCache;
         }
 
+        // 2) Caché en localStorage (entre recargas del mismo usuario)
+        try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                const raw = localStorage.getItem(COURSES_CACHE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && Array.isArray(parsed.courses) && typeof parsed.timestamp === 'number') {
+                        const age = Date.now() - parsed.timestamp;
+                        if (age >= 0 && age < COURSES_CACHE_TTL_MS) {
+                            console.log('[GLOBAL] Usando cursos cacheados en localStorage:', parsed.courses.length, '(edad:', age, 'ms)');
+                            allCoursesCache = parsed.courses;
+                            return allCoursesCache;
+                        } else {
+                            console.log('[GLOBAL] Cache localStorage caducada (', age, 'ms ), ignorando...');
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[GLOBAL] Error leyendo cache de localStorage:', e);
+        }
+
+        // 3) Si ya hay un fetch en marcha en esta pestaña, reutilizarlo
         if (allCoursesFetchPromise) {
             console.log('[GLOBAL] Esperando fetch global existente...');
             return allCoursesFetchPromise;
         }
 
+        // 4) Fetch real al API con paginación
         allCoursesFetchPromise = (async () => {
             console.log('\n[GLOBAL] ========== FETCH TODOS LOS CURSOS (CON PAGINACIÓN) ==========');
 
@@ -79,6 +108,21 @@
             console.log('[GLOBAL] Cursos por organización:', orgCount);
 
             allCoursesCache = allCourses;
+
+            // 5) Guardar en localStorage para próximas visitas
+            try {
+                if (typeof window !== 'undefined' && window.localStorage) {
+                    const payload = {
+                        timestamp: Date.now(),
+                        courses: allCourses
+                    };
+                    localStorage.setItem(COURSES_CACHE_KEY, JSON.stringify(payload));
+                    console.log('[GLOBAL] Cache guardada en localStorage:', allCourses.length, 'cursos');
+                }
+            } catch (e) {
+                console.warn('[GLOBAL] No se pudo guardar cache en localStorage:', e);
+            }
+
             return allCourses;
         })();
 
@@ -275,7 +319,6 @@
 
                 // 1) Excluir cursos hidden
                 if (course.hidden === true || course.hidden === 'true') {
-                    // console.log(`${logPrefix} EXCLUIDO: hidden = true (${course.name})`);
                     return false;
                 }
 
@@ -283,7 +326,6 @@
                 if (course.end && course.end !== 'None') {
                     const endDate = new Date(course.end);
                     if (!isNaN(endDate.getTime()) && endDate < now) {
-                        // console.log(`${logPrefix} EXCLUIDO: end < hoy (${course.end}) (${course.name})`);
                         return false;
                     }
                 }
@@ -292,7 +334,6 @@
                 if (course.enrollment_start && course.enrollment_start !== 'None') {
                     const enrollStart = new Date(course.enrollment_start);
                     if (!isNaN(enrollStart.getTime()) && enrollStart > now) {
-                        // console.log(`${logPrefix} EXCLUIDO: enrollment_start > hoy (${course.enrollment_start}) (${course.name})`);
                         return false;
                     }
                 }
@@ -308,7 +349,6 @@
                 if (this.config.mode === 'exclude') {
                     // Excluir por organización
                     if (this.config.hideOrgs && this.config.hideOrgs.includes(course.org)) {
-                        // console.log(`${logPrefix} EXCLUIDO (exclude): org en hideOrgs (${course.org}) (${course.name})`);
                         return false;
                     }
 
@@ -316,13 +356,11 @@
                     if (this.config.hideCourseIds && this.config.hideCourseIds.length > 0) {
                         const anyMatch = candidateIds.some(id => this.config.hideCourseIds.includes(id));
                         if (anyMatch) {
-                            // console.log(`${logPrefix} EXCLUIDO (exclude): id/course_id en hideCourseIds (${candidateIds.join(', ')}) (${course.name})`);
                             return false;
                         }
                     }
 
                     // Si no ha caído en ningún filtro de exclude, se incluye
-                    // console.log(`${logPrefix} INCLUIDO (exclude): ${course.name}`);
                     return true;
                 }
 
@@ -348,12 +386,10 @@
                         }
 
                         const included = this.config.filterCourseNumbers.includes(courseNumber);
-                        // console.log(`${logPrefix} (include) courseNumber="${courseNumber}" incluido=${included} (${course.name})`);
                         return included;
                     }
 
                     // Si solo filtramos por org, ya está incluido
-                    // console.log(`${logPrefix} INCLUIDO (include): ${course.name}`);
                     return true;
                 }
 
@@ -767,9 +803,8 @@
         @media (max-width: 480px) {
             .carousel-course-card {
                 flex: 0 0 100%;
-                max-width: 100%;
             }
-
+            
             .course-carousel-wrapper {
                 padding: 0 10px;
             }
