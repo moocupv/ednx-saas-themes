@@ -1,4 +1,4 @@
-// js_home_dual.js - Versión con paginación, filtros desde el HTML, tooltips y carrusel responsive
+// js_home_dual.js - Versión con paginación, filtros desde el HTML y tooltips en hover
 (function() {
     'use strict';
 
@@ -12,7 +12,7 @@
         return String(str)
             .replace(/&/g, '&amp;')
             .replace(/"/g, '&quot;')
-            .replace(/<//g, '&lt;')
+            .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
     }
 
@@ -94,7 +94,8 @@
             this.courses = [];
             this.allCoursesFromAPI = [];
             this.currentIndex = 0;        // índice de página (0 = primera página)
-            this.coursesPerPage = 4;      // valor por defecto, luego se recalcula con el ancho real
+            this.coursesPerPage = 4;      // valor por defecto, se recalcula según el ancho
+            this.onResizeBound = this.onResize.bind(this);
 
             console.log(`\n========================================`);
             console.log(`[${this.containerId}] CONSTRUCTOR LLAMADO`);
@@ -120,31 +121,43 @@
             console.log(`[${this.containerId}] Config desde data-*:\n`, JSON.stringify(this.config, null, 2));
             console.log(`[${this.containerId}] ✅ Contenedor encontrado`);
 
-            this.onResizeBound = this.onResize.bind(this);
-
             this.init();
+        }
+
+        // Calcula cursos por página en función del ancho (alineado con los media queries del CSS)
+        getCoursesPerPage() {
+            const w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+
+            if (w <= 480) {
+                return 1; // 100%
+            } else if (w <= 768) {
+                return 2; // 50%
+            } else if (w <= 1200) {
+                return 3; // 33.3333%
+            } else {
+                return 4; // 25%
+            }
+        }
+
+        onResize() {
+            // Recalcular cursos por página y reajustar navegación y posición
+            this.coursesPerPage = this.getCoursesPerPage();
+            this.updateNavigation();
+            this.updateCarousel();
         }
 
         init() {
             console.log(`[${this.containerId}] init() - Creando estructura`);
             this.createStructure();
+            // Establecer cursosPerPage inicial según el ancho
+            this.coursesPerPage = this.getCoursesPerPage();
+            console.log(`[${this.containerId}] init() - coursesPerPage inicial: ${this.coursesPerPage}`);
+
             console.log(`[${this.containerId}] init() - Obteniendo cursos (fetch global con paginación)`);
             this.fetchCourses();
 
-            // Recalcular al cambiar el tamaño de ventana (móvil ↔ escritorio, rotación, etc.)
+            // Escuchar cambios de tamaño de ventana
             window.addEventListener('resize', this.onResizeBound);
-        }
-
-        destroy() {
-            window.removeEventListener('resize', this.onResizeBound);
-        }
-
-        onResize() {
-            // Al cambiar el tamaño, recalculamos cursos por página y reajustamos la posición
-            if (!this.track || !this.trackContainer) return;
-            this.currentIndex = 0;
-            this.updateNavigation();
-            this.updateCarousel();
         }
 
         createStructure() {
@@ -180,12 +193,11 @@
                         <i class="fa fa-chevron-right"></i>
                     </button>
                 </div>
-            "";
+            `;
 
             this.container.appendChild(wrapper);
 
             // Referencias a elementos
-            this.trackContainer = wrapper.querySelector('.carousel-track-container');
             this.track = wrapper.querySelector('.carousel-track');
             this.prevBtn = wrapper.querySelector('.carousel-btn-prev');
             this.nextBtn = wrapper.querySelector('.carousel-btn-next');
@@ -263,6 +275,7 @@
 
                 // 1) Excluir cursos hidden
                 if (course.hidden === true || course.hidden === 'true') {
+                    // console.log(`${logPrefix} EXCLUIDO: hidden = true (${course.name})`);
                     return false;
                 }
 
@@ -270,6 +283,7 @@
                 if (course.end && course.end !== 'None') {
                     const endDate = new Date(course.end);
                     if (!isNaN(endDate.getTime()) && endDate < now) {
+                        // console.log(`${logPrefix} EXCLUIDO: end < hoy (${course.end}) (${course.name})`);
                         return false;
                     }
                 }
@@ -278,6 +292,7 @@
                 if (course.enrollment_start && course.enrollment_start !== 'None') {
                     const enrollStart = new Date(course.enrollment_start);
                     if (!isNaN(enrollStart.getTime()) && enrollStart > now) {
+                        // console.log(`${logPrefix} EXCLUIDO: enrollment_start > hoy (${course.enrollment_start}) (${course.name})`);
                         return false;
                     }
                 }
@@ -293,6 +308,7 @@
                 if (this.config.mode === 'exclude') {
                     // Excluir por organización
                     if (this.config.hideOrgs && this.config.hideOrgs.includes(course.org)) {
+                        // console.log(`${logPrefix} EXCLUIDO (exclude): org en hideOrgs (${course.org}) (${course.name})`);
                         return false;
                     }
 
@@ -300,11 +316,13 @@
                     if (this.config.hideCourseIds && this.config.hideCourseIds.length > 0) {
                         const anyMatch = candidateIds.some(id => this.config.hideCourseIds.includes(id));
                         if (anyMatch) {
+                            // console.log(`${logPrefix} EXCLUIDO (exclude): id/course_id en hideCourseIds (${candidateIds.join(', ')}) (${course.name})`);
                             return false;
                         }
                     }
 
-                    // Incluido
+                    // Si no ha caído en ningún filtro de exclude, se incluye
+                    // console.log(`${logPrefix} INCLUIDO (exclude): ${course.name}`);
                     return true;
                 }
 
@@ -330,10 +348,12 @@
                         }
 
                         const included = this.config.filterCourseNumbers.includes(courseNumber);
+                        // console.log(`${logPrefix} (include) courseNumber="${courseNumber}" incluido=${included} (${course.name})`);
                         return included;
                     }
 
                     // Si solo filtramos por org, ya está incluido
+                    // console.log(`${logPrefix} INCLUIDO (include): ${course.name}`);
                     return true;
                 }
 
@@ -377,7 +397,6 @@
 
             console.log(`[${this.containerId}] ✅ Todos los cursos renderizados`);
 
-            this.updateNavigation();
             this.updateCarousel();
         }
 
@@ -434,44 +453,22 @@
             return card;
         }
 
-        // Calcula dinámicamente cuántos cursos caben por página según el ancho real
-        getCoursesPerPage() {
-            if (!this.trackContainer) return this.coursesPerPage;
-
-            const containerWidth = this.trackContainer.offsetWidth;
-            const sampleCard = this.track ? this.track.querySelector('.carousel-course-card') : null;
-
-            if (!containerWidth || !sampleCard) {
-                return this.coursesPerPage;
-            }
-
-            const cardWidth = sampleCard.getBoundingClientRect().width || 1;
-            const perPage = Math.max(1, Math.floor(containerWidth / cardWidth));
-
-            return perPage;
-        }
-
         updateCarousel() {
-            if (!this.track || !this.trackContainer) return;
-
+            // currentIndex es la “página”, cada página desplaza el 100% del ancho visible
             this.coursesPerPage = this.getCoursesPerPage();
-            const containerWidth = this.trackContainer.offsetWidth || 0;
-
-            const offsetPx = -(this.currentIndex * containerWidth);
-            this.track.style.transform = `translateX(${offsetPx}px)`;
+            const offset = -(this.currentIndex * 100);
+            this.track.style.transform = `translateX(${offset}%)`;
 
             const startIdx = this.currentIndex * this.coursesPerPage;
             const endIdx = Math.min(startIdx + this.coursesPerPage, this.courses.length);
 
             console.log(
                 `[${this.containerId}] updateCarousel() - página: ${this.currentIndex}, ` +
-                `coursesPerPage: ${this.coursesPerPage}, mostrando cursos [${startIdx} .. ${endIdx - 1}] de ${this.courses.length}, offsetPx: ${offsetPx}px`
+                `coursesPerPage: ${this.coursesPerPage}, mostrando cursos [${startIdx} .. ${endIdx - 1}] de ${this.courses.length}, offset: ${offset}%`
             );
         }
 
         updateNavigation() {
-            if (!this.trackContainer) return;
-
             this.coursesPerPage = this.getCoursesPerPage();
             const totalPages = Math.ceil(this.courses.length / this.coursesPerPage) || 1;
 
@@ -491,19 +488,18 @@
         prev() {
             if (this.currentIndex > 0) {
                 this.currentIndex--;
-                this.updateNavigation();
                 this.updateCarousel();
+                this.updateNavigation();
             }
         }
 
         next() {
             this.coursesPerPage = this.getCoursesPerPage();
             const totalPages = Math.ceil(this.courses.length / this.coursesPerPage) || 1;
-
             if (this.currentIndex < totalPages - 1) {
                 this.currentIndex++;
-                this.updateNavigation();
                 this.updateCarousel();
+                this.updateNavigation();
             }
         }
     }
@@ -530,6 +526,7 @@
         }
 
         console.log('\n--- Creando Carrusel 1: catalogo-upvx ---');
+        // Configuración leída de los data-* del div
         const catalog1 = new CourseCarousel('catalogo-upvx');
 
         console.log('\n--- Creando Carrusel 2: catalogo-edx ---');
@@ -628,6 +625,7 @@
         .carousel-track {
             display: flex;
             transition: transform 0.4s ease-in-out;
+            /* IMPORTANTE: sin gap aquí para que 4 tarjetas = 100% exactos */
         }
 
         .carousel-course-card {
