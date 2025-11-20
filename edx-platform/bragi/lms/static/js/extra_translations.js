@@ -172,6 +172,12 @@ function getMappedLanguage(browserLang) {
       "el": "Φόρτωση μαθημάτων...",
       "it": "Caricamento corsi..."
     },
+    "(Cargando...)": {
+        "en": "(Loading...)",
+        "de": "(Laden...)",
+        "el": "(Φόρτωση...)",
+        "it": "(Caricamento...)"
+    },
     "Política de Cookies": {
       "en": "Cookie Policy",
       "de": "Cookie-Richtlinie",
