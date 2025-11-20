@@ -1,113 +1,150 @@
-// js_home_dual.js - Versión corregida (fetch único + paginación + IDs nuevos)
+// js_home_dual.js - Versión con paginación, filtros desde el HTML y tooltips en hover
 (function() {
     'use strict';
 
     console.log('=== INICIANDO js_home_dual.js ===');
     console.log('Timestamp:', new Date().toISOString());
 
-    // ============================================================
-    // FETCH GLOBAL DE TODOS LOS CURSOS (CON PAGINACIÓN)
-    // ============================================================
-    let allCoursesPromise = null;
+    // ---------- HELPERS GENERALES ----------
+
+    function escapeHtmlAttr(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function safeJsonParse(str, fallback) {
+        if (!str) return fallback;
+        try {
+            return JSON.parse(str);
+        } catch (e) {
+            console.warn('No se pudo hacer JSON.parse de:', str, e);
+            return fallback;
+        }
+    }
+
+    // ---------- FETCH GLOBAL DE TODOS LOS CURSOS (CON PAGINACIÓN) ----------
+
+    let allCoursesCache = null;
+    let allCoursesFetchPromise = null;
 
     async function fetchAllCoursesFromAPI() {
-        if (!allCoursesPromise) {
-            allCoursesPromise = (async () => {
-                console.log('\n🌐 [GLOBAL] Iniciando descarga de TODOS los cursos de la API...');
-                const initialUrl = '/api/courses/v1/courses/?page_size=100';
-                let url = initialUrl;
-                let allCourses = [];
-                let page = 1;
-
-                while (url) {
-                    console.log(`[GLOBAL] Llamando a: ${url}`);
-                    const response = await fetch(url);
-                    console.log(`[GLOBAL] Status respuesta página ${page}:`, response.status);
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error en página ${page}! status: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-
-                    const batch = data.results || [];
-                    const pagination = data.pagination || {};
-
-                    console.log(`[GLOBAL] Página ${page}: ${batch.length} cursos`);
-                    allCourses = allCourses.concat(batch);
-
-                    if (pagination.next) {
-                        url = pagination.next; // puede ser absoluta, fetch la soporta
-                        page += 1;
-                    } else {
-                        url = null;
-                    }
-                }
-
-                console.log(`[GLOBAL] ✅ Descarga completada. Total cursos: ${allCourses.length}`);
-                return allCourses;
-            })();
+        if (allCoursesCache) {
+            console.log('[GLOBAL] Usando cursos cacheados:', allCoursesCache.length);
+            return allCoursesCache;
         }
 
-        return allCoursesPromise;
+        if (allCoursesFetchPromise) {
+            console.log('[GLOBAL] Esperando fetch global existente...');
+            return allCoursesFetchPromise;
+        }
+
+        allCoursesFetchPromise = (async () => {
+            console.log('\n[GLOBAL] ========== FETCH TODOS LOS CURSOS (CON PAGINACIÓN) ==========');
+
+            const allCourses = [];
+            let url = '/api/courses/v1/courses/?page_size=100';
+            let page = 1;
+
+            while (url) {
+                console.log(`[GLOBAL] Descargando página ${page}: ${url}`);
+                const response = await fetch(url);
+                console.log(`[GLOBAL] Status página ${page}:`, response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error en página ${page}! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const results = Array.isArray(data.results) ? data.results : [];
+                console.log(`[GLOBAL] Página ${page}: ${results.length} cursos`);
+
+                allCourses.push(...results);
+
+                const pagination = data.pagination || {};
+                url = pagination.next || null;
+                page += 1;
+            }
+
+            console.log(`[GLOBAL] ✅ Total cursos descargados de la API: ${allCourses.length}`);
+
+            // Info por organización
+            const orgCount = {};
+            allCourses.forEach(c => {
+                orgCount[c.org] = (orgCount[c.org] || 0) + 1;
+            });
+            console.log('[GLOBAL] Cursos por organización:', orgCount);
+
+            allCoursesCache = allCourses;
+            return allCourses;
+        })();
+
+        return allCoursesFetchPromise;
     }
 
-    // Verificar que los contenedores existen
-    function checkContainers() {
-        console.log('--- VERIFICACIÓN DE CONTENEDORES ---');
-        const main = document.getElementById('catalogo-upvx');
-        const nivel = document.getElementById('catalogo-edx');
-        
-        console.log('Contenedor catalogo-upvx:', main ? 'ENCONTRADO' : 'NO ENCONTRADO');
-        console.log('Contenedor catalogo-edx:', nivel ? 'ENCONTRADO' : 'NO ENCONTRADO');
-        
-        return main && nivel;
-    }
+    // ---------- CLASE CARRUSEL ----------
 
-    // Clase para manejar un carrusel de cursos
     class CourseCarousel {
-        constructor(containerId, config) {
+        constructor(containerId) {
             this.containerId = containerId;
-            this.config = config;
             this.container = document.getElementById(containerId);
             this.courses = [];
             this.allCoursesFromAPI = [];
             this.currentIndex = 0;        // índice de página (0 = primera página)
             this.coursesPerPage = 4;      // 4 cursos visibles por “pantalla”
-            
+
             console.log(`\n========================================`);
             console.log(`[${this.containerId}] CONSTRUCTOR LLAMADO`);
-            console.log(`[${this.containerId}] Config:`, JSON.stringify(this.config, null, 2));
-            
+
             if (!this.container) {
                 console.error(`[${this.containerId}] ❌ CONTENEDOR NO ENCONTRADO!`);
                 console.log('Contenedores disponibles:', Array.from(document.querySelectorAll('[id]')).map(el => el.id));
                 return;
             }
-            
+
+            // Leer configuración desde data-* del div
+            const ds = this.container.dataset;
+
+            this.config = {
+                title: ds.title || '',
+                mode: ds.mode || 'exclude', // 'exclude' o 'include'
+                hideCourseIds: safeJsonParse(ds.hideCourseIds, []),
+                hideOrgs: safeJsonParse(ds.hideCourseOrgs, []),
+                filterOrg: ds.filterOrg || '',
+                filterCourseNumbers: safeJsonParse(ds.filterCourseNumbers, [])
+            };
+
+            console.log(`[${this.containerId}] Config desde data-*:\n`, JSON.stringify(this.config, null, 2));
             console.log(`[${this.containerId}] ✅ Contenedor encontrado`);
+
             this.init();
         }
 
         init() {
             console.log(`[${this.containerId}] init() - Creando estructura`);
             this.createStructure();
-            console.log(`[${this.containerId}] init() - Obteniendo cursos`);
+            console.log(`[${this.containerId}] init() - Obteniendo cursos (fetch global con paginación)`);
             this.fetchCourses();
         }
 
         createStructure() {
             console.log(`[${this.containerId}] createStructure() - Limpiando contenedor`);
-            
+
             // Limpiar completamente el contenedor
             this.container.innerHTML = '';
-            
+
             const wrapper = document.createElement('div');
             wrapper.className = 'course-carousel-wrapper';
             wrapper.setAttribute('data-carousel-id', this.containerId);
+
+            const titleText = this.config.title || '';
+
             wrapper.innerHTML = `
                 <div class="carousel-header">
-                    <h2>${this.config.title}</h2>
+                    <h2>${escapeHtmlAttr(titleText)}</h2>
                     <small style="color: #666;">(Cargando...)</small>
                 </div>
                 <div class="carousel-container">
@@ -127,19 +164,19 @@
                     </button>
                 </div>
             `;
-            
+
             this.container.appendChild(wrapper);
-            
+
             // Referencias a elementos
             this.track = wrapper.querySelector('.carousel-track');
             this.prevBtn = wrapper.querySelector('.carousel-btn-prev');
             this.nextBtn = wrapper.querySelector('.carousel-btn-next');
             this.headerSmall = wrapper.querySelector('.carousel-header small');
-            
+
             // Event listeners
             this.prevBtn.addEventListener('click', () => this.prev());
             this.nextBtn.addEventListener('click', () => this.next());
-            
+
             console.log(`[${this.containerId}] ✅ Estructura creada y añadida al DOM`);
         }
 
@@ -147,19 +184,11 @@
             console.log(`\n[${this.containerId}] ========== FETCH COURSES (USANDO FETCH GLOBAL) ==========`);
 
             try {
-                // 🔹 Usa el fetch global que ya descarga TODAS las páginas
                 const allCourses = await fetchAllCoursesFromAPI();
-                this.allCoursesFromAPI = allCourses;
+                this.allCoursesFromAPI = allCourses.slice(); // copia
 
-                console.log(`[${this.containerId}] ✅ Total cursos de la API (compartidos):`, this.allCoursesFromAPI.length);
-                
-                // Info por organización
-                const orgCount = {};
-                this.allCoursesFromAPI.forEach(c => {
-                    orgCount[c.org] = (orgCount[c.org] || 0) + 1;
-                });
-                console.log(`[${this.containerId}] Cursos por organización:`, orgCount);
-                
+                console.log(`[${this.containerId}] ✅ Total cursos disponibles globalmente:`, this.allCoursesFromAPI.length);
+
                 console.log(`\n[${this.containerId}] ========== INICIANDO FILTRADO ==========`);
 
                 this.courses = this.filterCourses(this.allCoursesFromAPI);
@@ -167,7 +196,7 @@
                 console.log(`[${this.containerId}] ========== FIN FILTRADO ==========\n`);
                 console.log(`[${this.containerId}] ✅ Cursos después del filtro (antes de ordenar):`, this.courses.length);
 
-                // Orden alfabético por nombre
+                // Orden alfabético por nombre (aplica a ambos carruseles)
                 this.courses.sort((a, b) => {
                     const nameA = (a.name || '').toLowerCase();
                     const nameB = (b.name || '').toLowerCase();
@@ -175,18 +204,18 @@
                 });
 
                 console.log(`[${this.containerId}] ✅ Cursos después de ordenar alfabéticamente:`, this.courses.length);
-                
+
                 this.renderCourses();
                 this.updateNavigation();
             } catch (error) {
                 console.error(`[${this.containerId}] ❌ ERROR FETCH:`, error);
                 this.container.innerHTML = `
                     <div class="carousel-header">
-                        <h2>${this.config.title}</h2>
+                        <h2>${escapeHtmlAttr(this.config.title || '')}</h2>
                     </div>
                     <p style="text-align: center; padding: 40px; color: red; background: #ffe6e6; border-radius: 8px; margin: 20px;">
                         <i class="fa fa-exclamation-triangle"></i><br><br>
-                        Error al cargar los cursos: ${error.message}
+                        Error al cargar los cursos: ${escapeHtmlAttr(error.message)}
                     </p>
                 `;
             }
@@ -216,7 +245,7 @@
 
                 // 1) Excluir cursos hidden
                 if (course.hidden === true || course.hidden === 'true') {
-                    console.log(`${logPrefix} EXCLUIDO: hidden = true (${course.name})`);
+                    // console.log(`${logPrefix} EXCLUIDO: hidden = true (${course.name})`);
                     return false;
                 }
 
@@ -224,7 +253,7 @@
                 if (course.end && course.end !== 'None') {
                     const endDate = new Date(course.end);
                     if (!isNaN(endDate.getTime()) && endDate < now) {
-                        console.log(`${logPrefix} EXCLUIDO: end < hoy (${course.end}) (${course.name})`);
+                        // console.log(`${logPrefix} EXCLUIDO: end < hoy (${course.end}) (${course.name})`);
                         return false;
                     }
                 }
@@ -233,7 +262,7 @@
                 if (course.enrollment_start && course.enrollment_start !== 'None') {
                     const enrollStart = new Date(course.enrollment_start);
                     if (!isNaN(enrollStart.getTime()) && enrollStart > now) {
-                        console.log(`${logPrefix} EXCLUIDO: enrollment_start > hoy (${course.enrollment_start}) (${course.name})`);
+                        // console.log(`${logPrefix} EXCLUIDO: enrollment_start > hoy (${course.enrollment_start}) (${course.name})`);
                         return false;
                     }
                 }
@@ -249,7 +278,7 @@
                 if (this.config.mode === 'exclude') {
                     // Excluir por organización
                     if (this.config.hideOrgs && this.config.hideOrgs.includes(course.org)) {
-                        console.log(`${logPrefix} EXCLUIDO (exclude): org en hideOrgs (${course.org}) (${course.name})`);
+                        // console.log(`${logPrefix} EXCLUIDO (exclude): org en hideOrgs (${course.org}) (${course.name})`);
                         return false;
                     }
 
@@ -257,13 +286,13 @@
                     if (this.config.hideCourseIds && this.config.hideCourseIds.length > 0) {
                         const anyMatch = candidateIds.some(id => this.config.hideCourseIds.includes(id));
                         if (anyMatch) {
-                            console.log(`${logPrefix} EXCLUIDO (exclude): id/course_id en hideCourseIds (${candidateIds.join(', ')}) (${course.name})`);
+                            // console.log(`${logPrefix} EXCLUIDO (exclude): id/course_id en hideCourseIds (${candidateIds.join(', ')}) (${course.name})`);
                             return false;
                         }
                     }
 
                     // Si no ha caído en ningún filtro de exclude, se incluye
-                    console.log(`${logPrefix} INCLUIDO (exclude): ${course.name}`);
+                    // console.log(`${logPrefix} INCLUIDO (exclude): ${course.name}`);
                     return true;
                 }
 
@@ -289,12 +318,12 @@
                         }
 
                         const included = this.config.filterCourseNumbers.includes(courseNumber);
-                        console.log(`${logPrefix} (include) courseNumber="${courseNumber}" incluido=${included} (${course.name})`);
+                        // console.log(`${logPrefix} (include) courseNumber="${courseNumber}" incluido=${included} (${course.name})`);
                         return included;
                     }
 
                     // Si solo filtramos por org, ya está incluido
-                    console.log(`${logPrefix} INCLUIDO (include): ${course.name}`);
+                    // console.log(`${logPrefix} INCLUIDO (include): ${course.name}`);
                     return true;
                 }
 
@@ -309,12 +338,12 @@
 
         renderCourses() {
             console.log(`[${this.containerId}] renderCourses() - Renderizando ${this.courses.length} cursos`);
-            
+
             if (this.headerSmall) {
                 this.headerSmall.textContent = `(${this.courses.length} cursos)`;
                 this.headerSmall.style.color = '#666';
             }
-            
+
             if (this.courses.length === 0) {
                 this.track.innerHTML = `
                     <div style="text-align: center; padding: 40px; width: 100%;">
@@ -325,9 +354,9 @@
                 console.warn(`[${this.containerId}] ⚠️ No hay cursos para mostrar`);
                 return;
             }
-            
+
             this.track.innerHTML = '';
-            
+
             this.courses.forEach((course, index) => {
                 const courseCard = this.createCourseCard(course);
                 this.track.appendChild(courseCard);
@@ -335,9 +364,9 @@
                     console.log(`[${this.containerId}] Renderizado curso ${index + 1}: ${course.name}`);
                 }
             });
-            
+
             console.log(`[${this.containerId}] ✅ Todos los cursos renderizados`);
-            
+
             this.updateCarousel();
         }
 
@@ -346,27 +375,51 @@
             card.className = 'carousel-course-card';
             card.setAttribute('data-course-org', course.org || '');
             card.setAttribute('data-course-id', course.id || course.course_id || '');
-            
+
             const imageUrl = (course.media && course.media.image && course.media.image.raw) ||
                              (course.media && course.media.course_image && course.media.course_image.uri) ||
                              '/static/images/course_image_placeholder.png';
 
             const courseIdForUrl = course.id || course.course_id;
             const courseUrl = courseIdForUrl ? `/courses/${courseIdForUrl}/about` : '#';
-            
+
+            // Textos completos
+            const fullTitle = course.name || '';
+            const fullDescription = course.short_description || '';
+
+            // Texto que se muestra en la ficha (recortado para la descripción)
+            let shortDescription = '';
+            if (fullDescription) {
+                shortDescription = fullDescription.length > 100
+                    ? fullDescription.substring(0, 100) + '...'
+                    : fullDescription;
+            }
+
             card.innerHTML = `
                 <a href="${courseUrl}" class="course-card-link">
                     <div class="course-image">
-                        <img src="${imageUrl}" alt="${course.name}" loading="lazy" onerror="this.src='/static/images/course_image_placeholder.png'">
+                        <img src="${imageUrl}" alt="${escapeHtmlAttr(fullTitle)}"
+                             loading="lazy"
+                             onerror="this.src='/static/images/course_image_placeholder.png'">
                     </div>
                     <div class="course-info">
-                        <h3 class="course-title">${course.name}</h3>
-                        <p class="course-org">${course.org || ''}</p>
-                        ${course.short_description ? `<p class="course-description">${course.short_description.substring(0, 100)}...</p>` : ''}
+                        <h3 class="course-title"
+                            title="${escapeHtmlAttr(fullTitle)}">
+                            ${escapeHtmlAttr(fullTitle)}
+                        </h3>
+                        <p class="course-org">${escapeHtmlAttr(course.org || '')}</p>
+                        ${
+                            fullDescription
+                                ? `<p class="course-description"
+                                      title="${escapeHtmlAttr(fullDescription)}">
+                                       ${escapeHtmlAttr(shortDescription)}
+                                   </p>`
+                                : ''
+                        }
                     </div>
                 </a>
             `;
-            
+
             return card;
         }
 
@@ -386,12 +439,12 @@
 
         updateNavigation() {
             const totalPages = Math.ceil(this.courses.length / this.coursesPerPage);
-            
+
             console.log(
                 `[${this.containerId}] updateNavigation() - Total cursos: ${this.courses.length}, ` +
                 `coursesPerPage: ${this.coursesPerPage}, totalPages: ${totalPages}, currentIndex: ${this.currentIndex}`
             );
-            
+
             this.prevBtn.disabled = this.currentIndex === 0;
             this.nextBtn.disabled = this.currentIndex >= totalPages - 1 || this.courses.length === 0;
         }
@@ -414,42 +467,45 @@
         }
     }
 
-    // Inicializar carruseles
+    // ---------- INICIALIZACIÓN ----------
+
+    function checkContainers() {
+        console.log('--- VERIFICACIÓN DE CONTENEDORES ---');
+        const upvx = document.getElementById('catalogo-upvx');
+        const edx = document.getElementById('catalogo-edx');
+
+        console.log('Contenedor catalogo-upvx:', upvx ? 'ENCONTRADO' : 'NO ENCONTRADO');
+        console.log('Contenedor catalogo-edx:', edx ? 'ENCONTRADO' : 'NO ENCONTRADO');
+
+        return upvx && edx;
+    }
+
     function initCarousels() {
         console.log('\n🚀 ========== INICIANDO CARRUSELES ==========');
-        
+
         if (!checkContainers()) {
             console.error('❌ NO SE PUEDEN INICIALIZAR - Contenedores no encontrados');
             return;
         }
-        
-        console.log('\n--- Creando Carrusel 1: Cursos UPVx ---');
-        const catalog1 = new CourseCarousel('catalogo-upvx', {
-            title: 'Cursos UPVx',
-            mode: 'exclude',
-            hideOrgs: ['poc', 'edxorg'],
-            hideCourseIds: ['course-v1:TecnologiasAvanzadasDeComunicaciones+5G-Industry4.0+2022-01']
-        });
-        
-        console.log('\n--- Creando Carrusel 2: Cursos en edX ---');
-        const catalog2 = new CourseCarousel('catalogo-edx', {
-            title: 'Cursos en edX',
-            mode: 'include',
-            filterOrg: 'edxorg'
-            // Sin filterCourseNumbers: TODOS los cursos de edxorg (sujetos a hidden/end/enrollment_start)
-        });
-        
+
+        console.log('\n--- Creando Carrusel 1: catalogo-upvx ---');
+        // Configuración leída de los data-* del div
+        const catalog1 = new CourseCarousel('catalogo-upvx');
+
+        console.log('\n--- Creando Carrusel 2: catalogo-edx ---');
+        const catalog2 = new CourseCarousel('catalogo-edx');
+
         console.log('\n✅ ========== CARRUSELES INICIALIZADOS ==========\n');
     }
 
     // Esperar a que el DOM esté listo con múltiples intentos
     let attempts = 0;
     const maxAttempts = 5;
-    
+
     function tryInit() {
         attempts++;
         console.log(`Intento de inicialización #${attempts}`);
-        
+
         if (document.getElementById('catalogo-upvx') && document.getElementById('catalogo-edx')) {
             console.log('✅ Contenedores encontrados, iniciando...');
             initCarousels();
@@ -460,14 +516,15 @@
             console.error('❌ No se pudieron encontrar los contenedores después de múltiples intentos');
         }
     }
-    
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', tryInit);
     } else {
         tryInit();
     }
 
-    // Añadir estilos CSS
+    // ---------- ESTILOS CSS ----------
+
     const styles = document.createElement('style');
     styles.textContent = `
         /* OCULTAR el listado original de cursos de Open edX */
@@ -479,7 +536,7 @@
         .courses-listing-item {
             display: none !important;
         }
-        
+
         #catalogo-upvx,
         #catalogo-edx {
             width: 100%;
@@ -487,20 +544,20 @@
             margin: 60px 0;
             min-height: 200px;
         }
-        
+
         .course-carousel-wrapper {
             margin: 0;
             padding: 0 20px;
             width: 100%;
             clear: both;
         }
-        
+
         .carousel-header {
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 3px solid #c8102e;
         }
-        
+
         .carousel-header h2 {
             font-size: 28px;
             font-weight: bold;
@@ -508,32 +565,32 @@
             color: #333;
             display: inline-block;
         }
-        
+
         .carousel-header small {
             margin-left: 10px;
             font-size: 16px;
             font-weight: normal;
         }
-        
+
         .carousel-container {
             position: relative;
             display: flex;
             align-items: center;
             gap: 15px;
         }
-        
+
         .carousel-track-container {
             flex: 1;
             overflow: hidden;
             border-radius: 8px;
         }
-        
+
         .carousel-track {
             display: flex;
             transition: transform 0.4s ease-in-out;
             /* IMPORTANTE: sin gap aquí para que 4 tarjetas = 100% exactos */
         }
-        
+
         .carousel-course-card {
             flex: 0 0 25%;
             max-width: 25%;
@@ -556,29 +613,29 @@
             transform: translateY(-5px);
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
-        
+
         .course-card-link {
             text-decoration: none;
             color: inherit;
         }
-        
+
         .course-image {
             width: 100%;
             height: 180px;
             overflow: hidden;
             background: #f0f0f0;
         }
-        
+
         .course-image img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        
+
         .course-info {
             padding: 15px;
         }
-        
+
         .course-title {
             font-size: 16px;
             font-weight: 600;
@@ -591,21 +648,26 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
         }
-        
+
         .course-org {
             font-size: 12px;
             color: #666;
             margin: 0 0 8px 0;
             font-weight: 500;
         }
-        
+
         .course-description {
             font-size: 13px;
             color: #777;
             margin: 0;
             line-height: 1.4;
+            max-height: 3.4em;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
         }
-        
+
         .carousel-btn {
             background: white;
             border: 2px solid #ddd;
@@ -619,17 +681,17 @@
             transition: all 0.3s ease;
             flex-shrink: 0;
         }
-        
+
         .carousel-btn:hover:not(:disabled) {
             background: #f5f5f5;
             border-color: #999;
         }
-        
+
         .carousel-btn:disabled {
             opacity: 0.3;
             cursor: not-allowed;
         }
-        
+
         .carousel-btn i {
             font-size: 20px;
             color: #333;
@@ -641,43 +703,43 @@
                 max-width: 25%;
             }
         }
-        
+
         @media (max-width: 1200px) {
             .carousel-course-card {
                 flex: 0 0 33.3333%;
                 max-width: 33.3333%;
             }
         }
-        
+
         @media (max-width: 768px) {
             .carousel-course-card {
                 flex: 0 0 50%;
                 max-width: 50%;
             }
-            
+
             .carousel-btn {
                 width: 40px;
                 height: 40px;
             }
-            
+
             .carousel-btn i {
                 font-size: 16px;
             }
         }
-        
+
         @media (max-width: 480px) {
             .carousel-course-card {
                 flex: 0 0 100%;
                 max-width: 100%;
             }
-            
+
             .course-carousel-wrapper {
                 padding: 0 10px;
             }
         }
     `;
-    
+
     document.head.appendChild(styles);
-    
+
     console.log('=== Estilos CSS añadidos ===\n');
 })();
