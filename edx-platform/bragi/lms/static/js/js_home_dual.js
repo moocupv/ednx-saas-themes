@@ -1,8 +1,8 @@
-// js_home_dual_debug.js - Versión con depuración intensiva
+// js_home_dual.js - Versión corregida
 (function() {
     'use strict';
 
-    console.log('=== INICIANDO js_home_dual_debug.js ===');
+    console.log('=== INICIANDO js_home_dual.js ===');
     console.log('Timestamp:', new Date().toISOString());
 
     // Verificar que los contenedores existen
@@ -13,16 +13,6 @@
         
         console.log('Contenedor main:', main ? 'ENCONTRADO' : 'NO ENCONTRADO');
         console.log('Contenedor nivelacion:', nivel ? 'ENCONTRADO' : 'NO ENCONTRADO');
-        
-        if (main) {
-            console.log('Main innerHTML:', main.innerHTML.substring(0, 200));
-            console.log('Main tiene hijos:', main.children.length);
-        }
-        
-        if (nivel) {
-            console.log('Nivelacion innerHTML:', nivel.innerHTML.substring(0, 200));
-            console.log('Nivelacion tiene hijos:', nivel.children.length);
-        }
         
         return main && nivel;
     }
@@ -35,8 +25,8 @@
             this.container = document.getElementById(containerId);
             this.courses = [];
             this.allCoursesFromAPI = [];
-            this.currentIndex = 0;
-            this.coursesPerPage = 6; // Cambiado de 4 a 6 cursos por página
+            this.currentIndex = 0;        // índice de página
+            this.coursesPerPage = 4;      // 4 cursos visibles por carrusel
             
             console.log(`\n========================================`);
             console.log(`[${this.containerId}] CONSTRUCTOR LLAMADO`);
@@ -49,8 +39,6 @@
             }
             
             console.log(`[${this.containerId}] ✅ Contenedor encontrado`);
-            console.log(`[${this.containerId}] Contenedor actual HTML:`, this.container.innerHTML.substring(0, 100));
-            
             this.init();
         }
 
@@ -64,7 +52,7 @@
         createStructure() {
             console.log(`[${this.containerId}] createStructure() - Limpiando contenedor`);
             
-            // IMPORTANTE: Limpiar completamente el contenedor
+            // Limpiar completamente el contenedor
             this.container.innerHTML = '';
             
             const wrapper = document.createElement('div');
@@ -91,7 +79,6 @@
                         <i class="fa fa-chevron-right"></i>
                     </button>
                 </div>
-                <div class="carousel-indicators"></div>
             `;
             
             this.container.appendChild(wrapper);
@@ -100,7 +87,6 @@
             this.track = wrapper.querySelector('.carousel-track');
             this.prevBtn = wrapper.querySelector('.carousel-btn-prev');
             this.nextBtn = wrapper.querySelector('.carousel-btn-next');
-            this.indicators = wrapper.querySelector('.carousel-indicators');
             this.headerSmall = wrapper.querySelector('.carousel-header small');
             
             // Event listeners
@@ -112,12 +98,12 @@
 
         async fetchCourses() {
             console.log(`\n[${this.containerId}] ========== FETCH COURSES ==========`);
+
             try {
                 const url = '/api/courses/v1/courses/?page_size=100';
                 console.log(`[${this.containerId}] Fetch URL:`, url);
                 
                 const response = await fetch(url);
-                
                 console.log(`[${this.containerId}] Response status:`, response.status);
                 
                 if (!response.ok) {
@@ -129,36 +115,19 @@
                 
                 console.log(`[${this.containerId}] ✅ Total cursos de la API:`, this.allCoursesFromAPI.length);
                 
-                // Mostrar todos los cursos y sus organizaciones
+                // Información rápida por organización
                 const orgCount = {};
                 this.allCoursesFromAPI.forEach(c => {
                     orgCount[c.org] = (orgCount[c.org] || 0) + 1;
                 });
                 console.log(`[${this.containerId}] Cursos por organización:`, orgCount);
                 
-                // Mostrar primeros 5 cursos
-                console.log(`[${this.containerId}] Primeros 5 cursos:`, this.allCoursesFromAPI.slice(0, 5).map(c => ({
-                    name: c.name,
-                    org: c.org,
-                    id: c.id,
-                    course_id: c.course_id
-                })));
-                
                 console.log(`\n[${this.containerId}] ========== INICIANDO FILTRADO ==========`);
+
                 this.courses = this.filterCourses(this.allCoursesFromAPI);
+
                 console.log(`[${this.containerId}] ========== FIN FILTRADO ==========\n`);
-                
                 console.log(`[${this.containerId}] ✅ Cursos después del filtro:`, this.courses.length);
-                
-                if (this.courses.length === 0) {
-                    console.warn(`[${this.containerId}] ⚠️ NO HAY CURSOS DESPUÉS DEL FILTRO!`);
-                } else {
-                    console.log(`[${this.containerId}] Cursos filtrados:`, this.courses.map(c => ({
-                        name: c.name,
-                        org: c.org,
-                        course_id: c.course_id
-                    })));
-                }
                 
                 this.renderCourses();
                 this.updateNavigation();
@@ -176,80 +145,91 @@
             }
         }
 
+        /**
+         * Filtrado de cursos:
+         * - Aplica modo "exclude" o "include" según this.config.mode
+         * - Excluye SIEMPRE:
+         *   - cursos hidden
+         *   - cursos con end en el pasado
+         */
         filterCourses(courses) {
             console.log(`[${this.containerId}] filterCourses() - Modo: ${this.config.mode}`);
             console.log(`[${this.containerId}] Cursos a filtrar:`, courses.length);
-            
-            const filtered = courses.filter((course, index) => {
-                const logPrefix = `[${this.containerId}][Curso ${index}]`;
-                
-                // Modo exclude: Excluir organizaciones específicas
+
+            const now = new Date();
+
+            const filtered = courses.filter(course => {
+                // 1) Excluir cursos ocultos
+                if (course.hidden === true) {
+                    return false;
+                }
+
+                // 2) Excluir cursos cuya fecha de fin ha pasado
+                if (course.end && course.end !== 'None') {
+                    const endDate = new Date(course.end);
+                    if (!isNaN(endDate.getTime()) && endDate < now) {
+                        return false;
+                    }
+                }
+
+                // 3) IDs candidatos (id y course_id)
+                const candidateIds = [];
+                if (course.id) candidateIds.push(course.id);
+                if (course.course_id && course.course_id !== course.id) {
+                    candidateIds.push(course.course_id);
+                }
+
+                // 4) Modo EXCLUDE
                 if (this.config.mode === 'exclude') {
-                    console.log(`${logPrefix} Evaluando "${course.name}" (org: ${course.org})`);
-                    
                     // Excluir por organización
                     if (this.config.hideOrgs && this.config.hideOrgs.includes(course.org)) {
-                        console.log(`${logPrefix} ❌ EXCLUIDO por org: ${course.org}`);
                         return false;
                     }
-                    
-                    // Excluir por ID específico
-                    if (this.config.hideCourseIds && this.config.hideCourseIds.includes(course.id)) {
-                        console.log(`${logPrefix} ❌ EXCLUIDO por ID: ${course.id}`);
-                        return false;
+
+                    // Excluir por ID (id o course_id)
+                    if (this.config.hideCourseIds && this.config.hideCourseIds.length > 0) {
+                        const matchId = candidateIds.some(id => this.config.hideCourseIds.includes(id));
+                        if (matchId) {
+                            return false;
+                        }
                     }
-                    
-                    console.log(`${logPrefix} ✅ INCLUIDO`);
+
+                    // Todo lo demás entra
                     return true;
                 }
-                
-                // Modo include: Solo incluir cursos específicos
+
+                // 5) Modo INCLUDE
                 if (this.config.mode === 'include') {
-                    console.log(`${logPrefix} Evaluando "${course.name}" (org: ${course.org}, id: ${course.course_id})`);
-                    
-                    // Debe ser de la organización correcta
+                    // Debe ser de la organización indicada
                     if (this.config.filterOrg && course.org !== this.config.filterOrg) {
-                        console.log(`${logPrefix} ❌ EXCLUIDO - org no coincide (esperado: ${this.config.filterOrg}, actual: ${course.org})`);
                         return false;
                     }
-                    
-                    // Si hay filtro de course numbers, verificar
+
+                    // Si hay filtro de course numbers, aplicar
                     if (this.config.filterCourseNumbers && this.config.filterCourseNumbers.length > 0) {
-                        // Extraer el course number del course_id
-                        const parts = course.course_id.split('+');
                         let courseNumber = '';
-                        
-                        if (parts.length >= 2) {
-                            courseNumber = parts[1];
-                        } else {
+                        if (course.course_id) {
+                            const plusParts = course.course_id.split('+');
                             const slashParts = course.course_id.split('/');
-                            if (slashParts.length >= 2) {
+
+                            if (plusParts.length >= 2) {
+                                courseNumber = plusParts[1];
+                            } else if (slashParts.length >= 2) {
                                 courseNumber = slashParts[1];
                             }
                         }
-                        
-                        console.log(`${logPrefix} Course number extraído: "${courseNumber}"`);
-                        console.log(`${logPrefix} ¿Está en la lista?:`, this.config.filterCourseNumbers.includes(courseNumber));
-                        
-                        const isIncluded = this.config.filterCourseNumbers.includes(courseNumber);
-                        
-                        if (isIncluded) {
-                            console.log(`${logPrefix} ✅ INCLUIDO - course number coincide`);
-                        } else {
-                            console.log(`${logPrefix} ❌ EXCLUIDO - course number no está en la lista`);
-                        }
-                        
-                        return isIncluded;
+
+                        return this.config.filterCourseNumbers.includes(courseNumber);
                     }
-                    
-                    console.log(`${logPrefix} ✅ INCLUIDO - org coincide y no hay filtro de numbers`);
+
+                    // Si solo filtramos por org, ya hemos pasado el filtro
                     return true;
                 }
-                
-                console.log(`${logPrefix} ❌ EXCLUIDO - modo desconocido`);
+
+                // Modo desconocido: no incluir
                 return false;
             });
-            
+
             console.log(`[${this.containerId}] Filtrado completado: ${filtered.length} cursos`);
             return filtered;
         }
@@ -278,26 +258,28 @@
             this.courses.forEach((course, index) => {
                 const courseCard = this.createCourseCard(course);
                 this.track.appendChild(courseCard);
-                
                 if (index < 2) {
-                    console.log(`[${this.containerId}] ✅ Renderizado curso ${index + 1}: ${course.name}`);
+                    console.log(`[${this.containerId}] Renderizado curso ${index + 1}: ${course.name}`);
                 }
             });
             
             console.log(`[${this.containerId}] ✅ Todos los cursos renderizados`);
             
-            this.createIndicators();
             this.updateCarousel();
         }
 
         createCourseCard(course) {
             const card = document.createElement('div');
             card.className = 'carousel-course-card';
-            card.setAttribute('data-course-org', course.org);
-            card.setAttribute('data-course-id', course.id);
+            card.setAttribute('data-course-org', course.org || '');
+            card.setAttribute('data-course-id', course.id || course.course_id || '');
             
-            const imageUrl = course.media?.image?.raw || course.media?.course_image?.uri || '/static/images/course_image_placeholder.png';
-            const courseUrl = `/courses/${course.id}/about`;
+            const imageUrl = (course.media && course.media.image && course.media.image.raw) ||
+                             (course.media && course.media.course_image && course.media.course_image.uri) ||
+                             '/static/images/course_image_placeholder.png';
+
+            const courseIdForUrl = course.id || course.course_id;
+            const courseUrl = courseIdForUrl ? `/courses/${courseIdForUrl}/about` : '#';
             
             card.innerHTML = `
                 <a href="${courseUrl}" class="course-card-link">
@@ -306,7 +288,7 @@
                     </div>
                     <div class="course-info">
                         <h3 class="course-title">${course.name}</h3>
-                        <p class="course-org">${course.org}</p>
+                        <p class="course-org">${course.org || ''}</p>
                         ${course.short_description ? `<p class="course-description">${course.short_description.substring(0, 100)}...</p>` : ''}
                     </div>
                 </a>
@@ -315,52 +297,28 @@
             return card;
         }
 
-        createIndicators() {
-            this.indicators.innerHTML = '';
-            const totalPages = Math.ceil(this.courses.length / this.coursesPerPage);
-            
-            if (totalPages <= 1) return;
-            
-            for (let i = 0; i < totalPages; i++) {
-                const indicator = document.createElement('button');
-                indicator.className = 'carousel-indicator';
-                indicator.setAttribute('aria-label', `Página ${i + 1}`);
-                indicator.addEventListener('click', () => this.goToPage(i));
-                this.indicators.appendChild(indicator);
-            }
-            
-            this.updateIndicators();
-        }
-
         updateCarousel() {
-            const cardWidth = 100 / this.coursesPerPage;
-            const offset = -(this.currentIndex * cardWidth);
+            // currentIndex se interpreta como "página", no como índice de curso.
+            // Cada página desplaza el ancho completo (100%).
+            const offset = -(this.currentIndex * 100);
             this.track.style.transform = `translateX(${offset}%)`;
             
-            console.log(`[${this.containerId}] updateCarousel() - currentIndex: ${this.currentIndex}, coursesPerPage: ${this.coursesPerPage}, offset: ${offset}%, totalCourses: ${this.courses.length}`);
+            console.log(
+                `[${this.containerId}] updateCarousel() - página: ${this.currentIndex}, ` +
+                `coursesPerPage: ${this.coursesPerPage}, offset: ${offset}%, totalCourses: ${this.courses.length}`
+            );
         }
 
         updateNavigation() {
             const totalPages = Math.ceil(this.courses.length / this.coursesPerPage);
             
-            console.log(`[${this.containerId}] updateNavigation() - Total cursos: ${this.courses.length}, coursesPerPage: ${this.coursesPerPage}, totalPages: ${totalPages}, currentIndex: ${this.currentIndex}`);
-            console.log(`[${this.containerId}] Deberían verse ${Math.min(this.coursesPerPage, this.courses.length - (this.currentIndex * this.coursesPerPage))} cursos en esta página`);
+            console.log(
+                `[${this.containerId}] updateNavigation() - Total cursos: ${this.courses.length}, ` +
+                `coursesPerPage: ${this.coursesPerPage}, totalPages: ${totalPages}, currentIndex: ${this.currentIndex}`
+            );
             
             this.prevBtn.disabled = this.currentIndex === 0;
             this.nextBtn.disabled = this.currentIndex >= totalPages - 1 || this.courses.length === 0;
-            
-            this.updateIndicators();
-        }
-
-        updateIndicators() {
-            const indicators = this.indicators.querySelectorAll('.carousel-indicator');
-            indicators.forEach((indicator, index) => {
-                if (index === this.currentIndex) {
-                    indicator.classList.add('active');
-                } else {
-                    indicator.classList.remove('active');
-                }
-            });
         }
 
         prev() {
@@ -379,27 +337,14 @@
                 this.updateNavigation();
             }
         }
-
-        goToPage(pageIndex) {
-            this.currentIndex = pageIndex;
-            this.updateCarousel();
-            this.updateNavigation();
-        }
     }
 
     // Inicializar carruseles
     function initCarousels() {
         console.log('\n🚀 ========== INICIANDO CARRUSELES ==========');
         
-        // Verificar contenedores primero
         if (!checkContainers()) {
             console.error('❌ NO SE PUEDEN INICIALIZAR - Contenedores no encontrados');
-            setTimeout(() => {
-                console.log('Reintentando en 500ms...');
-                if (checkContainers()) {
-                    initCarousels();
-                }
-            }, 500);
             return;
         }
         
@@ -416,7 +361,7 @@
             title: 'Cursos en edX',
             mode: 'include',
             filterOrg: 'edxorg'
-            // NO filterCourseNumbers - queremos TODOS los cursos de edxorg
+            // Sin filterCourseNumbers: queremos TODOS los cursos de edxorg
         });
         
         console.log('\n✅ ========== CARRUSELES INICIALIZADOS ==========\n');
@@ -515,8 +460,8 @@
         }
         
         .carousel-course-card {
-            min-width: calc(16.666% - 17px);
-            flex: 0 0 calc(16.666% - 17px);
+            min-width: calc(25% - 15px);
+            flex: 0 0 calc(25% - 15px);
             background: white;
             border-radius: 8px;
             overflow: hidden;
@@ -607,35 +552,7 @@
             font-size: 20px;
             color: #333;
         }
-        
-        .carousel-indicators {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 20px;
-        }
-        
-        .carousel-indicator {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #ddd;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            padding: 0;
-        }
-        
-        .carousel-indicator.active {
-            background: #c8102e;
-            width: 30px;
-            border-radius: 5px;
-        }
-        
-        .carousel-indicator:hover {
-            background: #999;
-        }
-        
+
         @media (max-width: 1400px) {
             .carousel-course-card {
                 min-width: calc(25% - 15px);
