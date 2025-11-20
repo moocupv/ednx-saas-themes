@@ -370,7 +370,7 @@
             console.log(`[${this.containerId}] renderCourses() - Renderizando ${this.courses.length} cursos`);
 
             if (this.headerSmall) {
-                this.headerSmall.textContent = `(${this.courses.length} cursos)`;
+                this.headerSmall.textContent = `(${this.courses.length} )`;
                 this.headerSmall.style.color = '#666';
             }
 
