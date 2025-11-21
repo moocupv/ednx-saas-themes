@@ -172,11 +172,11 @@
         getCoursesPerPage() {
             const w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
 
-            if (w <= 600) {
+            if (w <= 480) {
                 return 1; // 100%
-            } else if (w <= 1000) {
+            } else if (w <= 768) {
                 return 2; // 50%
-            } else if (w <= 1400) {
+            } else if (w <= 1200) {
                 return 3; // 33.3333%
             } else {
                 return 4; // 25%
@@ -800,11 +800,14 @@
             }
         }
 
-        @media (max-width: 600px) {
-            .carousel-course-card {
-                flex: 0 0 100%;
+        /* 👇 Fuerza UNA sola columna en móviles pequeños */
+        @media (max-width: 480px) {
+            #catalogo-upvx .carousel-course-card,
+            #catalogo-edx .carousel-course-card {
+                flex: 0 0 100% !important;
+                max-width: 100% !important;
             }
-            
+
             .course-carousel-wrapper {
                 padding: 0 10px;
             }
