@@ -1,4 +1,4 @@
-// js_home_dual.js - Versión con paginación, filtros desde el HTML, tooltips en hover, caché en localStorage y uso de API cacheada
+// js_home_dual.js - Versión con paginación, filtros desde el HTML, tooltips en hover y caché en localStorage
 (function() {
     'use strict';
 
@@ -70,13 +70,12 @@
             return allCoursesFetchPromise;
         }
 
-        // 4) Fetch real al API cacheada con paginación
+        // 4) Fetch real al API con paginación
         allCoursesFetchPromise = (async () => {
-            console.log('\n[GLOBAL] ========== FETCH TODOS LOS CURSOS (CON PAGINACIÓN, API CACHEADA) ==========');
+            console.log('\n[GLOBAL] ========== FETCH TODOS LOS CURSOS (CON PAGINACIÓN) ==========');
 
             const allCourses = [];
-            // 👇 USAMOS SIEMPRE LA VISTA CACHEADA
-            let url = '/api/courses/v1/courses_cached/?page_size=100';
+            let url = '/api/courses/v1/courses/?page_size=100';
             let page = 1;
 
             while (url) {
@@ -95,21 +94,11 @@
                 allCourses.push(...results);
 
                 const pagination = data.pagination || {};
-                let nextUrl = pagination.next || null;
-
-                // 👇 Si la API devuelve /api/courses/v1/courses/..., la forzamos a /courses_cached/
-                if (nextUrl) {
-                    nextUrl = nextUrl.replace(
-                        /\/api\/courses\/v1\/courses\//,
-                        '/api/courses/v1/courses_cached/'
-                    );
-                }
-
-                url = nextUrl;
+                url = pagination.next || null;
                 page += 1;
             }
 
-            console.log(`[GLOBAL] ✅ Total cursos descargados de la API cacheada: ${allCourses.length}`);
+            console.log(`[GLOBAL] ✅ Total cursos descargados de la API: ${allCourses.length}`);
 
             // Info por organización
             const orgCount = {};
@@ -266,7 +255,7 @@
         }
 
         async fetchCourses() {
-            console.log(`\n[${this.containerId}] ========== FETCH COURSES (USANDO FETCH GLOBAL CACHEADO) ==========`);
+            console.log(`\n[${this.containerId}] ========== FETCH COURSES (USANDO FETCH GLOBAL) ==========`);
 
             try {
                 const allCourses = await fetchAllCoursesFromAPI();
