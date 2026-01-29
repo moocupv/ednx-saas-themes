@@ -1,4 +1,4 @@
-// js_home_dual.js - Versión con paginación, filtros desde el HTML, tooltips en hover y caché en localStorage
+// js_home_dual.js - Versión con paginación, filtros desde el HTML, tooltips en hover y caché en servidor y localStorage
 (function() {
     'use strict';
 
