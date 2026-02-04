@@ -1,9 +1,13 @@
 // js_home_dual.js - Versión optimizada con:
 // - Caché en memoria + localStorage (TTL)
-// - Renderizado virtualizado (solo páginas cercanas) manteniendo carrusel deslizante
+// - Renderizado (puede ser) virtualizado, manteniendo carrusel deslizante
 // - requestAnimationFrame para agrupar renders
-// - Menos trabajo en main thread (menos logs, sort más barato opcional)
 // - Resize eficiente
+//
+// FIXES incluidos:
+// 1) translateX en PX (no en %) para evitar saltos por width "lógica" del track
+// 2) Se elimina track.style.width = `${logicalWidth}%` (causaba que -100% moviese TODO el track)
+// 3) getCoursesPerPage() mide el ancho REAL del carrusel (track-container) antes que window.innerWidth
 (function () {
   'use strict';
 
@@ -68,11 +72,7 @@
         const raw = localStorage.getItem(COURSES_CACHE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (
-            parsed &&
-            Array.isArray(parsed.courses) &&
-            typeof parsed.timestamp === 'number'
-          ) {
+          if (parsed && Array.isArray(parsed.courses) && typeof parsed.timestamp === 'number') {
             const age = Date.now() - parsed.timestamp;
             if (age >= 0 && age < COURSES_CACHE_TTL_MS) {
               log('[GLOBAL] Usando cursos cacheados en localStorage:', parsed.courses.length);
@@ -127,7 +127,7 @@
   }
 
   // =======================
-  // CLASE CARRUSEL (VIRTUALIZADO)
+  // CLASE CARRUSEL
   // =======================
   class CourseCarousel {
     constructor(containerId) {
@@ -139,10 +139,10 @@
       this.currentIndex = 0; // página
       this.coursesPerPage = 4;
 
-      // Virtualización
+      // (Opcional) Virtualización (si quieres reactivarla, ver virtualRender)
       this.renderStartIndex = 0; // índice del primer curso renderizado
-      this.renderEndIndex = 0;   // exclusivo
-      this.virtualPagesPad = 1;  // renderiza prev + actual + next
+      this.renderEndIndex = 0; // exclusivo
+      this.virtualPagesPad = 1; // prev + actual + next
       this._renderScheduled = false;
 
       // Resize
@@ -161,15 +161,17 @@
         hideCourseIds: safeJsonParse(ds.hideCourseIds, []),
         hideOrgs: safeJsonParse(ds.hideCourseOrgs, []),
         filterOrg: ds.filterOrg || '',
-        filterCourseNumbers: safeJsonParse(ds.filterCourseNumbers, [])
+        filterCourseNumbers: safeJsonParse(ds.filterCourseNumbers, []),
       };
 
       this.init();
     }
 
-    // Alineado con media queries
+    // Alineado con media queries, pero midiendo ancho REAL del carrusel
     getCoursesPerPage() {
+      const trackContainer = this.container.querySelector('.carousel-track-container');
       const w =
+        (trackContainer && trackContainer.getBoundingClientRect().width) ||
         window.innerWidth ||
         document.documentElement.clientWidth ||
         document.body.clientWidth;
@@ -223,6 +225,7 @@
 
       this.wrapper = wrapper;
       this.track = wrapper.querySelector('.carousel-track');
+      this.trackContainer = wrapper.querySelector('.carousel-track-container');
       this.prevBtn = wrapper.querySelector('.carousel-btn-prev');
       this.nextBtn = wrapper.querySelector('.carousel-btn-next');
       this.headerSmall = wrapper.querySelector('.carousel-header small');
@@ -239,7 +242,7 @@
         // Filtrar
         this.courses = this.filterCourses(this.allCoursesFromAPI);
 
-        // Ordenar (rápido). Si quieres mantener localeCompare ES, sustitúyelo.
+        // Ordenar (rápido)
         for (const c of this.courses) c.__nameKey = (c.name || '').toLowerCase();
         this.courses.sort((a, b) => (a.__nameKey > b.__nameKey) - (a.__nameKey < b.__nameKey));
 
@@ -324,7 +327,7 @@
       });
     }
 
-    // Render "lógico": prepara y virtualiza
+    // Render "lógico": prepara y pinta
     renderCourses() {
       if (this.headerSmall) {
         this.headerSmall.textContent = `(${this.courses.length})`;
@@ -341,7 +344,7 @@
         return;
       }
 
-      // Reset de virtualización
+      // Reset de render
       this.renderStartIndex = 0;
       this.renderEndIndex = 0;
 
@@ -360,17 +363,14 @@
       });
     }
 
+    // Actualmente: renderiza TODO (para evitar recortes tipo 7/35)
+    // Si quieres volver a virtualización real, te la dejo comentada debajo.
     virtualRender() {
-      const perPage = this.getCoursesPerPage();
       const total = this.courses.length;
-
-      const totalPages = Math.max(1, Math.ceil(total / perPage));
-      if (this.currentIndex >= totalPages) this.currentIndex = totalPages - 1;
-      if (this.currentIndex < 0) this.currentIndex = 0;
 
       const startIdx = 0;
       const endIdx = total;
-      
+
       if (startIdx === this.renderStartIndex && endIdx === this.renderEndIndex) return;
 
       this.renderStartIndex = startIdx;
@@ -384,11 +384,44 @@
       this.track.innerHTML = '';
       this.track.appendChild(frag);
 
-      // Simula ancho total del track para que translateX por páginas sea coherente
-      const logicalWidth = (total / perPage) * 100;
-      this.track.style.width = `${logicalWidth}%`;
+      // IMPORTANTE: NO forzar width lógica del track
       this.track.style.willChange = 'transform';
     }
+
+    /*
+    // Virtualización por páginas (si la quieres, sustituye virtualRender() por esto)
+    virtualRender() {
+      const perPage = this.getCoursesPerPage();
+      const total = this.courses.length;
+
+      const totalPages = Math.max(1, Math.ceil(total / perPage));
+      if (this.currentIndex >= totalPages) this.currentIndex = totalPages - 1;
+      if (this.currentIndex < 0) this.currentIndex = 0;
+
+      const currentPage = this.currentIndex;
+      const startPage = Math.max(0, currentPage - this.virtualPagesPad);
+      const endPage = Math.min(totalPages - 1, currentPage + this.virtualPagesPad);
+
+      const startIdx = startPage * perPage;
+      const endIdx = Math.min(total, (endPage + 1) * perPage);
+
+      if (startIdx === this.renderStartIndex && endIdx === this.renderEndIndex) return;
+
+      this.renderStartIndex = startIdx;
+      this.renderEndIndex = endIdx;
+
+      const frag = document.createDocumentFragment();
+      for (let i = startIdx; i < endIdx; i++) {
+        frag.appendChild(this.createCourseCard(this.courses[i]));
+      }
+
+      this.track.innerHTML = '';
+      this.track.appendChild(frag);
+
+      // IMPORTANTE: NO forzar width lógica del track
+      this.track.style.willChange = 'transform';
+    }
+    */
 
     createCourseCard(course) {
       const card = document.createElement('div');
@@ -410,9 +443,7 @@
       let shortDescription = '';
       if (fullDescription) {
         shortDescription =
-          fullDescription.length > 100
-            ? fullDescription.substring(0, 100) + '...'
-            : fullDescription;
+          fullDescription.length > 100 ? fullDescription.substring(0, 100) + '...' : fullDescription;
       }
 
       card.innerHTML = `
@@ -442,16 +473,18 @@
       return card;
     }
 
+    // FIX: translateX en px usando ancho del viewport del carrusel
     updateCarousel() {
       this.coursesPerPage = this.getCoursesPerPage();
       const perPage = this.coursesPerPage;
 
-      // DOM virtual empieza en renderStartIndex -> startPage
+      // DOM renderizado empieza en renderStartIndex -> startPage
       const startPage = Math.floor(this.renderStartIndex / perPage);
 
-      // Offset relativo al DOM renderizado (en páginas)
-      const domOffsetPercent = -((this.currentIndex - startPage) * 100);
-      this.track.style.transform = `translateX(${domOffsetPercent}%)`;
+      const viewportW = this.trackContainer ? this.trackContainer.getBoundingClientRect().width : 0;
+
+      const offsetPx = -((this.currentIndex - startPage) * viewportW);
+      this.track.style.transform = `translateX(${offsetPx}px)`;
     }
 
     updateNavigation() {
@@ -483,7 +516,6 @@
     }
 
     onResize() {
-      // Recalcula perPage y re-render virtualizado (agrupado)
       this.scheduleVirtualRender();
     }
   }
@@ -507,7 +539,6 @@
     new CourseCarousel('catalogo-edx');
   }
 
-  // Intentos (mantengo tu lógica, pero sin esperar “de más”)
   let attempts = 0;
   const maxAttempts = 5;
 
@@ -529,7 +560,7 @@
   }
 
   // =======================
-  // CSS (igual que tu versión + will-change opcional)
+  // CSS
   // =======================
   const styles = document.createElement('style');
   styles.textContent = `
