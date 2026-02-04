@@ -6,7 +6,7 @@
 //
 // FIXES incluidos:
 // 1) translateX en PX (no en %) para evitar saltos por width "lógica" del track
-// 2) NO se fuerza track.style.width = `${logicalWidth}%`
+// 2) NO se fuerza track.style.width = `${logicalWidth}%` prueba
 // 3) getCoursesPerPage() mide el ancho REAL del carrusel (track-container) antes que window.innerWidth
 (function () {
   'use strict';
