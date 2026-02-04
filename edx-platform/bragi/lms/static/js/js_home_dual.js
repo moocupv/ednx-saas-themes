@@ -1,12 +1,12 @@
-// js_home_dual.js - Versión optimizada con:
+// js_home_dual.js
 // - Caché en memoria + localStorage (TTL)
-// - Renderizado (puede ser) virtualizado, manteniendo carrusel deslizante
+// - Renderizado virtualizado (prev + actual + siguientes) para rendimiento
 // - requestAnimationFrame para agrupar renders
 // - Resize eficiente
 //
 // FIXES incluidos:
 // 1) translateX en PX (no en %) para evitar saltos por width "lógica" del track
-// 2) Se elimina track.style.width = `${logicalWidth}%` (causaba que -100% moviese TODO el track)
+// 2) NO se fuerza track.style.width = `${logicalWidth}%`
 // 3) getCoursesPerPage() mide el ancho REAL del carrusel (track-container) antes que window.innerWidth
 (function () {
   'use strict';
@@ -41,7 +41,6 @@
     }
   }
 
-  // Debounce simple (para resize)
   function debounce(fn, wait) {
     let t = null;
     return function debounced(...args) {
@@ -139,17 +138,21 @@
       this.currentIndex = 0; // página
       this.coursesPerPage = 4;
 
-      // (Opcional) Virtualización (si quieres reactivarla, ver virtualRender)
+      // Virtualización
       this.renderStartIndex = 0; // índice del primer curso renderizado
       this.renderEndIndex = 0; // exclusivo
-      this.virtualPagesPad = 1; // prev + actual + next
       this._renderScheduled = false;
+
+      // Padding virtual (páginas) para evitar huecos:
+      // 1 anterior, 2 siguientes suele ir muy bien
+      this.padLeftPages = 1;
+      this.padRightPages = 2;
 
       // Resize
       this.onResizeBound = debounce(this.onResize.bind(this), 100);
 
       if (!this.container) {
-        error(`[${this.containerId}] ❌ CONTENEDOR NO ENCONTRADO`);
+        error(`[${this.containerId}] CONTENEDOR NO ENCONTRADO`);
         return;
       }
 
@@ -237,7 +240,7 @@
     async fetchCourses() {
       try {
         const allCourses = await fetchAllCoursesFromAPI();
-        this.allCoursesFromAPI = allCourses; // no copiar: evitamos coste innecesario
+        this.allCoursesFromAPI = allCourses;
 
         // Filtrar
         this.courses = this.filterCourses(this.allCoursesFromAPI);
@@ -250,7 +253,7 @@
         this.renderCourses();
         this.updateNavigation();
       } catch (e) {
-        error(`[${this.containerId}] ❌ ERROR FETCH:`, e);
+        error(`[${this.containerId}] ERROR FETCH:`, e);
         this.container.innerHTML = `
           <div class="carousel-header">
             <h2>${escapeHtmlAttr(this.config.title || '')}</h2>
@@ -327,7 +330,6 @@
       });
     }
 
-    // Render "lógico": prepara y pinta
     renderCourses() {
       if (this.headerSmall) {
         this.headerSmall.textContent = `(${this.courses.length})`;
@@ -344,7 +346,6 @@
         return;
       }
 
-      // Reset de render
       this.renderStartIndex = 0;
       this.renderEndIndex = 0;
 
@@ -363,33 +364,8 @@
       });
     }
 
-    // Actualmente: renderiza TODO (para evitar recortes tipo 7/35)
-    // Si quieres volver a virtualización real, te la dejo comentada debajo.
-    virtualRender() {
-      const total = this.courses.length;
-
-      const startIdx = 0;
-      const endIdx = total;
-
-      if (startIdx === this.renderStartIndex && endIdx === this.renderEndIndex) return;
-
-      this.renderStartIndex = startIdx;
-      this.renderEndIndex = endIdx;
-
-      const frag = document.createDocumentFragment();
-      for (let i = startIdx; i < endIdx; i++) {
-        frag.appendChild(this.createCourseCard(this.courses[i]));
-      }
-
-      this.track.innerHTML = '';
-      this.track.appendChild(frag);
-
-      // IMPORTANTE: NO forzar width lógica del track
-      this.track.style.willChange = 'transform';
-    }
-
-    /*
-    // Virtualización por páginas (si la quieres, sustituye virtualRender() por esto)
+    // Virtualización por páginas:
+    // renderiza 1 página anterior, la actual y 2 siguientes (evita huecos al navegar).
     virtualRender() {
       const perPage = this.getCoursesPerPage();
       const total = this.courses.length;
@@ -399,8 +375,9 @@
       if (this.currentIndex < 0) this.currentIndex = 0;
 
       const currentPage = this.currentIndex;
-      const startPage = Math.max(0, currentPage - this.virtualPagesPad);
-      const endPage = Math.min(totalPages - 1, currentPage + this.virtualPagesPad);
+
+      const startPage = Math.max(0, currentPage - this.padLeftPages);
+      const endPage = Math.min(totalPages - 1, currentPage + this.padRightPages);
 
       const startIdx = startPage * perPage;
       const endIdx = Math.min(total, (endPage + 1) * perPage);
@@ -418,10 +395,8 @@
       this.track.innerHTML = '';
       this.track.appendChild(frag);
 
-      // IMPORTANTE: NO forzar width lógica del track
       this.track.style.willChange = 'transform';
     }
-    */
 
     createCourseCard(course) {
       const card = document.createElement('div');
@@ -473,7 +448,7 @@
       return card;
     }
 
-    // FIX: translateX en px usando ancho del viewport del carrusel
+    // translateX en px usando ancho del viewport del carrusel
     updateCarousel() {
       this.coursesPerPage = this.getCoursesPerPage();
       const perPage = this.coursesPerPage;
@@ -531,7 +506,7 @@
 
   function initCarousels() {
     if (!checkContainers()) {
-      error('❌ NO SE PUEDEN INICIALIZAR - Contenedores no encontrados');
+      error('NO SE PUEDEN INICIALIZAR - Contenedores no encontrados');
       return;
     }
 
@@ -549,7 +524,7 @@
     } else if (attempts < maxAttempts) {
       setTimeout(tryInit, 250 * attempts);
     } else {
-      error('❌ No se pudieron encontrar los contenedores tras múltiples intentos');
+      error('No se pudieron encontrar los contenedores tras múltiples intentos');
     }
   }
 
