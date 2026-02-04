@@ -368,13 +368,9 @@
       if (this.currentIndex >= totalPages) this.currentIndex = totalPages - 1;
       if (this.currentIndex < 0) this.currentIndex = 0;
 
-      const currentPage = this.currentIndex;
-      const startPage = Math.max(0, currentPage - this.virtualPagesPad);
-      const endPage = Math.min(totalPages - 1, currentPage + this.virtualPagesPad);
-
-      const startIdx = startPage * perPage;
-      const endIdx = Math.min(total, (endPage + 1) * perPage);
-
+      const startIdx = 0;
+      const endIdx = total;
+      
       if (startIdx === this.renderStartIndex && endIdx === this.renderEndIndex) return;
 
       this.renderStartIndex = startIdx;
